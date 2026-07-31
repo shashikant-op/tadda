@@ -1,0 +1,32 @@
+const express = require('express');
+const router = express.Router();
+const {
+  createBranch, getBranches, getBranchBySlug, updateBranch, deleteBranch,
+  createSubject, getSubjects, getSubjectBySlug, updateSubject, deleteSubject,
+  createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic
+} = require('../controllers/category.controller');
+const { protect } = require('../middleware/auth.middleware');
+const { authorize } = require('../middleware/role.middleware');
+
+// --- Branches Routes ---
+router.post('/branches', protect, authorize('admin'), createBranch);
+router.get('/branches', getBranches);
+router.get('/branches/:slug', getBranchBySlug);
+router.put('/branches/:id', protect, authorize('admin'), updateBranch);
+router.delete('/branches/:id', protect, authorize('admin'), deleteBranch);
+
+// --- Subjects Routes ---
+router.post('/subjects', protect, authorize('admin'), createSubject);
+router.get('/subjects', getSubjects);
+router.get('/subjects/:slug', getSubjectBySlug);
+router.put('/subjects/:id', protect, authorize('admin'), updateSubject);
+router.delete('/subjects/:id', protect, authorize('admin'), deleteSubject);
+
+// --- Topics Routes ---
+router.post('/topics', protect, authorize('admin'), createTopic);
+router.get('/topics', getTopics);
+router.get('/topics/:slug', getTopicBySlug);
+router.put('/topics/:id', protect, authorize('admin'), updateTopic);
+router.delete('/topics/:id', protect, authorize('admin'), deleteTopic);
+
+module.exports = router;
