@@ -1,575 +1,537 @@
-AGENTS.md — TutorialsAdda Full Stack Testing & Verification Agent
+# Production Task: Replace the Current Text Editor with a Production-Ready Rich Text Editor
 
+You are a Senior Staff Frontend Engineer with 20+ years of experience building production CMS platforms.
 
-# Project Objective
+Your task is to completely audit and rebuild the text editor section. Do NOT make superficial fixes. The final implementation must be production-ready, secure, maintainable, accessible, and scalable.
 
+## Goal
 
-Verify and validate that the existing TutorialsAdda frontend and backend are correctly connected.
+Transform the current editor into a professional editor comparable to Notion, Medium, GitBook, or Hashnode.
 
+The current implementation uses `contentEditable` and `document.execCommand`, which are deprecated and unsuitable for production.
 
-The goal is NOT to rebuild anything.
-
-
-The goal is:
-
-Test Backend
-↓
-Verify Database Storage
-↓
-Test APIs
-↓
-Connect Frontend
-↓
-Verify Data Fetching
-↓
-Fix Integration Issues
-↓
-Confirm Production Readiness
-
+Do not preserve the existing implementation unless absolutely necessary.
 
 ---
 
-# Important Rules
+# Requirements
 
+## 1. Remove Deprecated APIs
 
-## DO NOT
+Completely remove every usage of:
 
+* document.execCommand()
+* prompt()
+* direct HTML insertion
+* browser-dependent formatting
 
-- Rewrite existing frontend
-- Rewrite existing backend
-- Change UI design
-- Change database architecture
-- Create unnecessary features
-- Replace working APIs
-
-
-Only fix:
-
-- Connection issues
-- API issues
-- Data flow issues
-- Authentication issues
-- Environment issues
-
+Do not leave dead code.
 
 ---
 
-# Testing Strategy
+## 2. Use TipTap
 
+Replace the editor with TipTap.
 
-Testing must happen in this order:
+Install and configure:
 
-Backend Testing
-Database Verification
-API Testing
-Frontend API Connection Testing
-Complete User Flow Testing
+* @tiptap/react
+* @tiptap/starter-kit
+* @tiptap/extension-placeholder
+* @tiptap/extension-link
+* @tiptap/extension-image
+* @tiptap/extension-underline
+* @tiptap/extension-text-align
+* @tiptap/extension-highlight
+* @tiptap/extension-character-count
+* @tiptap/extension-task-list
+* @tiptap/extension-task-item
+* @tiptap/extension-code-block-lowlight
 
-
-Never test frontend before confirming backend works.
-
-
----
-
-# PHASE 1 — Backend Environment Verification
-
-
-## Objective
-
-
-Confirm backend can start correctly.
-
-
-Check:
-
-Node.js installed
-Dependencies installed
-Environment variables loaded
-MongoDB connected
-Server running
-
-
-Verify:
-
-
-Backend:
-
-npm run dev
-
-
-Expected:
-
-Server running successfully
-Database connected successfully
-
+Organize extensions cleanly.
 
 ---
 
-# PHASE 2 — Database Connection Testing
+## 3. Modular Architecture
 
+Refactor the editor into reusable components.
 
-## Objective
-
-
-Verify backend can communicate with MongoDB.
-
-
-Check:
-
-MONGO_URI
-MongoDB Atlas connection
-Database permissions
-Collections creation
-
-
-Test:
-
-
-Create a temporary test API:
-
-POST /api/v1/test/database
-
-
-Send:
-
-
-```json
-{
-"name":"Test Tutorial",
-"type":"database-test"
-}
-Expected:
-Data should appear in MongoDB.
-Verify in:
-MongoDB Atlas Dashboard
-
-MongoDB Compass
-If data is not saved:
-Debug:
-MongoDB URI
-Schema
-Model
-Controller
-Database permissions
-Do not continue until database saving works.
-PHASE 3 — Backend Dummy Data Testing
-Objective
-Send dummy data through APIs and verify complete backend flow.
-Test order:
-Create Branch
-
-↓
-
-Create Subject
-
-↓
-
-Create Topic
-
-↓
-
-Create Tutorial
-
-↓
-
-Create Quiz
-
-↓
-
-Create User
-Dummy Branch Test
-API:
-POST /api/v1/branches
-Data:
-{
-"name":"Computer Science",
-"slug":"computer-science",
-"description":"Programming and engineering tutorials"
-}
-Verify:
-MongoDB:
-branches collection
-Expected:
-Document exists.
-Dummy Subject Test
-API:
-POST /api/v1/subjects
-Data:
-{
-"name":"Data Structures",
-"slug":"data-structures",
-"branch":"branch_id"
-}
-Verify:
-subjects collection
-Dummy Topic Test
-API:
-POST /api/v1/topics
-Data:
-{
-"name":"Arrays",
-"slug":"arrays",
-"subject":"subject_id"
-}
-Verify:
-topics collection
-Dummy Tutorial Test
-API:
-POST /api/v1/tutorials
-Data:
-{
-"title":"Two Sum Algorithm",
-
-"description":"Learn Two Sum",
-
-"content":"Tutorial content example",
-
-"branch":"branch_id",
-
-"subject":"subject_id",
-
-"topic":"topic_id",
-
-"codeBlocks":[
-{
-"language":"javascript",
-"code":"console.log('Hello World')"
-}
-],
-
-"seo":{
-"title":"Two Sum Tutorial",
-"description":"Learn Two Sum algorithm"
-}
-}
-Verify:
-MongoDB:
-tutorials collection
-Check:
-Data saved
-Relations correct
-Slug generated
-SEO stored
-PHASE 4 — Backend API Testing
-Use:
-Postman
-
-or
-
-Thunder Client
-Test every API.
-Public API Testing
-Check:
-GET /tutorials
-
-GET /branches
-
-GET /subjects
-
-GET /topics
-
-GET /tutorial/:slug
-Verify:
-Response contains database data.
 Example:
-{
-"success":true,
-"data":{
-"title":"Two Sum Algorithm"
-}
-}
-Authentication Testing
-Test:
-Register
-POST /auth/register
-Verify:
-User created
-Password hashed
-Token returned
-Login
-POST /auth/login
-Verify:
-Correct credentials
-JWT generated
-Protected API Testing
-Without token:
-Expected:
-401 Unauthorized
-With token:
-Expected:
-200 Success
-Test:
-Bookmarks
 
-Progress
+components/editor/
 
-Profile
+Editor.tsx
 
-Admin APIs
-PHASE 5 — Frontend Connection Testing
-Only start after backend is verified.
-Environment Verification
-Check frontend:
-.env.local
-Verify:
-NEXT_PUBLIC_API_URL
-Example:
-NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
-Axios Verification
-Check:
-src/lib/axios.ts
-Verify:
-Correct backend URL
-Token attached
-Error handling works
-PHASE 6 — Verify Frontend Data Source
-Main Rule
-No frontend page should use fake/static data after integration.
-Check every page:
-Homepage
-Verify:
-Branches come from backend.
-Example:
-GET /branches
-Branch Page
-Verify:
-Data comes from:
-GET /branches/:slug
-Subject Page
-Verify:
-Data comes from:
-GET /subjects/:slug
-Topic Page
-Verify:
-Data comes from:
-GET /topics/:slug
-Tutorial Page
-Verify:
-Data comes from:
-GET /tutorials/:slug
-Check:
+EditorToolbar.tsx
+
+BubbleMenu.tsx
+
+FloatingMenu.tsx
+
+EditorImageUpload.tsx
+
+EditorLinkDialog.tsx
+
+EditorCharacterCounter.tsx
+
+EditorPreview.tsx
+
+EditorSlashMenu.tsx
+
+hooks/
+
+useEditorAutosave.ts
+
+useEditorHistory.ts
+
+lib/
+
+editor.ts
+
+Do not keep everything inside one page.
+
+---
+
+## 4. Toolbar
+
+Implement a professional toolbar.
+
+Support:
+
+* Bold
+* Italic
+* Underline
+* Strike
+* Code
+* Inline code
+* H1
+* H2
+* H3
+* Paragraph
+* Bullet list
+* Ordered list
+* Task list
+* Quote
+* Divider
+* Code block
+* Image
+* Link
+* Undo
+* Redo
+* Text alignment
+* Highlight
+* Clear formatting
+
+Toolbar buttons must show active state.
+
+---
+
+## 5. Floating Bubble Menu
+
+When text is selected show:
+
+Bold
+
+Italic
+
+Link
+
+Highlight
+
+Code
+
+Heading
+
+Exactly like Notion.
+
+---
+
+## 6. Floating Slash Command
+
+Typing "/"
+
+opens a searchable command menu.
+
+Commands:
+
+Heading
+
+Image
+
+Video
+
+Divider
+
+Code Block
+
+Quote
+
+Checklist
+
+Table
+
+Callout
+
+Horizontal Rule
+
+The menu must support keyboard navigation.
+
+---
+
+## 7. Image Upload
+
+Do NOT use prompt().
+
+Implement image upload.
+
+Requirements:
+
+Drag & Drop
+
+Paste Image
+
+Click Upload
+
+Upload Progress
+
+Image Preview
+
+Image Resize
+
+Image Delete
+
+Only insert uploaded URLs.
+
+Never insert raw HTML.
+
+---
+
+## 8. Link Dialog
+
+Replace prompt() with a proper modal.
+
+Fields:
+
+URL
+
 Title
-Content
-Images
+
+Open in new tab
+
+rel="nofollow"
+
+Validate URL.
+
+---
+
+## 9. Autosave
+
+Implement debounce autosave.
+
+Flow:
+
+User types
+
+↓
+
+Wait 2 seconds
+
+↓
+
+PATCH draft
+
+↓
+
+Show
+
+Saving...
+
+Saved
+
+Failed
+
+Never spam API calls.
+
+---
+
+## 10. Unsaved Changes
+
+Warn user before leaving page.
+
+Support:
+
+Browser refresh
+
+Closing tab
+
+Changing route
+
+---
+
+## 11. Word Count
+
+Display:
+
+Words
+
+Characters
+
+Paragraphs
+
+Estimated reading time
+
+Live updates.
+
+---
+
+## 12. Paste Handling
+
+Intercept paste.
+
+Remove:
+
+inline styles
+
+office html
+
+empty spans
+
+font tags
+
+junk markup
+
+Keep:
+
+bold
+
+italic
+
+lists
+
+tables
+
+links
+
+images
+
+Produce clean HTML/JSON.
+
+---
+
+## 13. Keyboard Shortcuts
+
+Implement:
+
+Ctrl+B
+
+Ctrl+I
+
+Ctrl+U
+
+Ctrl+Shift+7
+
+Ctrl+Shift+8
+
+Ctrl+K
+
+Ctrl+Z
+
+Ctrl+Y
+
+Tab
+
+Shift+Tab
+
+Escape
+
+---
+
+## 14. Accessibility
+
+Toolbar buttons must include:
+
+aria-label
+
+aria-pressed
+
+role
+
+keyboard navigation
+
+focus indicators
+
+Screen reader compatible.
+
+---
+
+## 15. Mobile Support
+
+Toolbar must be responsive.
+
+Support:
+
+Horizontal scrolling
+
+Sticky toolbar
+
+Touch friendly controls
+
+No overflow.
+
+---
+
+## 16. Performance
+
+Prevent unnecessary rerenders.
+
+Use:
+
+React.memo
+
+useCallback
+
+useMemo
+
+Lazy loading
+
+Debounced updates
+
+Avoid expensive renders.
+
+---
+
+## 17. Security
+
+Sanitize all HTML.
+
+Use DOMPurify.
+
+Prevent:
+
+XSS
+
+Script injection
+
+Malformed HTML
+
+Unsafe attributes
+
+Never trust user HTML.
+
+---
+
+## 18. Storage
+
+Do NOT store arbitrary HTML.
+
+Store TipTap JSON document.
+
+Convert to HTML only when rendering.
+
+Maintain backward compatibility with existing HTML if possible.
+
+---
+
+## 19. Preview
+
+Preview must render exactly what the editor produces.
+
+No rendering mismatches.
+
+Support:
+
 Code blocks
-Quiz
-Related tutorials
-If Frontend Data Is Missing
-Debug in this order:
-1. Check API URL
 
-↓
+Images
 
-2. Check Network Tab
+Lists
 
-↓
+Tables
 
-3. Check API Response
+Links
 
-↓
+Task lists
 
-4. Check Service Function
+Headings
 
-↓
+---
 
-5. Check React Query Hook
+## 20. Error Handling
 
-↓
+Handle:
 
-6. Check Component Props
-PHASE 7 — Browser Network Testing
-Use browser developer tools.
-Open:
-Chrome DevTools
+Image upload failures
 
-↓
+Autosave failures
 
-Network Tab
-Verify:
-Every page request:
-Frontend
+Network loss
 
-↓
+Invalid links
 
-Backend API
+Invalid content
 
-↓
+Show user-friendly error messages.
 
-Response received
+---
 
-↓
+## 21. Production Code Quality
 
-UI updated
-PHASE 8 — Complete User Flow Testing
-Student Flow
-Test:
-Register
+Strict TypeScript.
 
-↓
+No any.
 
-Login
+No duplicated logic.
 
-↓
+No console.log left behind.
 
-Browse Tutorials
+No unused imports.
 
-↓
+No dead state.
 
-Search
+No deprecated APIs.
 
-↓
+No memory leaks.
 
-Open Tutorial
+No race conditions.
 
-↓
+No hydration issues.
 
-Bookmark
+---
 
-↓
+## 22. Code Review
 
-Complete Quiz
+After implementation:
 
-↓
+* Remove all obsolete editor code.
+* Remove document.execCommand().
+* Remove contentEditable implementation.
+* Remove prompt().
+* Remove dangerous HTML insertion.
+* Fix lint warnings.
+* Fix TypeScript errors.
+* Ensure the project builds successfully.
+* Ensure the editor works in Chrome, Firefox, Safari, and Edge.
 
-Track Progress
-Author Flow
-Test:
-Login
+---
 
-↓
+## Deliverables
 
-Create Tutorial
+1. Complete production-ready TipTap editor.
+2. Modular component architecture.
+3. Clean TypeScript implementation.
+4. Fully responsive UI.
+5. Accessible toolbar.
+6. Autosave.
+7. Image upload.
+8. Link modal.
+9. Slash commands.
+10. Bubble menu.
+11. Keyboard shortcuts.
+12. Secure HTML sanitization.
+13. Word count.
+14. Reading time.
+15. Unsaved changes protection.
+16. No deprecated browser APIs.
+17. No regressions in existing tutorial create/edit functionality.
 
-↓
-
-Upload Image
-
-↓
-
-Add Code
-
-↓
-
-Publish Tutorial
-
-↓
-
-Verify Public Page
-Admin Flow
-Test:
-Login
-
-↓
-
-Open Dashboard
-
-↓
-
-Manage Users
-
-↓
-
-Manage Categories
-
-↓
-
-Manage Tutorials
-
-↓
-
-View Analytics
-PHASE 9 — Bug Fixing Rules
-When an issue appears:
-Follow:
-Identify Problem
-
-↓
-
-Find Layer
-
-↓
-
-Fix Smallest Possible Area
-
-↓
-
-Retest
-
-↓
-
-Verify No Regression
-Example:
-Tutorial not loading:
-Check:
-Database
-
-↓
-
-Backend API
-
-↓
-
-Axios
-
-↓
-
-React Query
-
-↓
-
-Component
-PHASE 10 — Final Production Verification
-Before deployment:
-Backend
-Verify:
-MongoDB connected
-
-All APIs working
-
-Authentication working
-
-Errors handled
-
-Environment variables correct
-Frontend
-Verify:
-No mock data
-
-All pages fetch backend data
-
-No console errors
-
-Build successful
-
-SEO working
-Final Acceptance Criteria
-TutorialsAdda is considered complete only when:
-Backend saves real data into MongoDB
-
-↓
-
-APIs return correct data
-
-↓
-
-Frontend fetches real API data
-
-↓
-
-Authentication works
-
-↓
-
-Roles work
-
-↓
-
-Tutorial workflow works
-
-↓
-
-No broken integrations
-
-↓
-
-Production deployment ready
+Do not stop after partial implementation. Continue until every requirement above is completed, all lint errors are fixed, and the project compiles successfully.

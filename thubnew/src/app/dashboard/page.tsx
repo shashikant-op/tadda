@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
@@ -12,11 +13,18 @@ import { Bookmark, LearningProgress } from "@/types";
 import { BookOpen, CheckCircle, Bookmark as BookmarkIcon, Award, User, ArrowRight } from "lucide-react";
 
 export default function StudentDashboardPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [progress, setProgress] = useState<LearningProgress[]>([]);
 
   useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token && !isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+
     userService.getBookmarks()
       .then((data) => setBookmarks(Array.isArray(data) ? data : []))
       .catch(() => setBookmarks([]));
@@ -24,7 +32,7 @@ export default function StudentDashboardPage() {
     userService.getProgress()
       .then((data) => setProgress(Array.isArray(data) ? data : []))
       .catch(() => setProgress([]));
-  }, []);
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -34,16 +42,25 @@ export default function StudentDashboardPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-8 border-b mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Student Dashboard</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">{user?.role} Dashboard</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Welcome back, {user?.name || "Student"}! Track your learning progress and saved tutorials from MongoDB.
             </p>
           </div>
-          <Link href="/profile">
-            <Button variant="outline">
-              <User className="mr-2 h-4 w-4" /> Edit Profile
-            </Button>
-          </Link>
+          <div className="flex items-center space-x-3">
+            {(user?.role === "author" || user?.role === "admin") && (
+              <Link href="/author/create">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  + Create / Edit Course
+                </Button>
+              </Link>
+            )}
+            <Link href="/profile">
+              <Button variant="outline">
+                <User className="mr-2 h-4 w-4" /> Edit Profile
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Grid */}

@@ -1,6 +1,19 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { branchService } from "@/services/branch.service";
+import { Branch } from "@/types";
 
 export function Footer() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    branchService.getBranches()
+      .then((data) => setBranches(Array.isArray(data) ? data : []))
+      .catch(() => setBranches([]));
+  }, []);
+
   return (
     <footer className="border-t bg-muted/40">
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -18,12 +31,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm mb-4">Branches</h4>
+            <h4 className="font-semibold text-sm mb-4">Engineering Branches</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/computer-science" className="hover:text-primary">Computer Science</Link></li>
-              <li><Link href="/web-development" className="hover:text-primary">Web Development</Link></li>
-              <li><Link href="/ai-ml" className="hover:text-primary">Artificial Intelligence</Link></li>
-              <li><Link href="/cloud-devops" className="hover:text-primary">Cloud & DevOps</Link></li>
+              {branches.map((b) => (
+                <li key={b.id || b.slug}>
+                  <Link href={`/${b.slug}`} className="hover:text-primary">{b.name}</Link>
+                </li>
+              ))}
             </ul>
           </div>
 

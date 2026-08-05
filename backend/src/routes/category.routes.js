@@ -16,14 +16,14 @@ router.put('/branches/:id', protect, authorize('admin'), updateBranch);
 router.delete('/branches/:id', protect, authorize('admin'), deleteBranch);
 
 // --- Subjects Routes ---
-router.post('/subjects', protect, authorize('admin'), createSubject);
+router.post('/subjects', protect, authorize('author', 'admin'), createSubject);
 router.get('/subjects', getSubjects);
 router.get('/subjects/:slug', getSubjectBySlug);
-router.put('/subjects/:id', protect, authorize('admin'), updateSubject);
+router.put('/subjects/:id', protect, authorize('author', 'admin'), updateSubject);
 router.delete('/subjects/:id', protect, authorize('admin'), deleteSubject);
 
 // --- Topics Routes ---
-router.post('/topics', protect, authorize('admin'), createTopic);
+router.post('/topics', protect, authorize('author', 'admin'), createTopic);
 router.get('/topics', getTopics);
 router.get('/topics/:slug', getTopicBySlug);
 router.put('/topics/:id', protect, authorize('admin'), updateTopic);

@@ -1,4 +1,3 @@
-"client"
 "use client";
 
 import Link from "next/link";
@@ -40,11 +39,14 @@ export default function LoginPage() {
       loginStore(res.user, res.token);
       if (res.user.role === "admin") {
         router.push("/admin");
+      } else if (res.user.role === "author") {
+        router.push("/author/create");
       } else {
         router.push("/dashboard");
       }
-    } catch {
-      setError("Invalid email or password. Try admin@tutorialsadda.com or student@tutorialsadda.com");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Invalid email or password. Try admin@tutorialsadda.com, author@tutorialsadda.com, or student@tutorialsadda.com (password: password123)";
+      setError(msg);
     }
   };
 
@@ -53,7 +55,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-2xl">
               TA
             </div>
           </div>

@@ -9,6 +9,7 @@ import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { BranchCard } from "@/components/cards/BranchCard";
 import { TutorialCard } from "@/components/cards/TutorialCard";
+import { branchService } from "@/services/branch.service";
 import { tutorialService } from "@/services/tutorial.service";
 import { Branch, Tutorial } from "@/types";
 
@@ -18,12 +19,12 @@ export default function HomePage() {
   const [featuredTutorials, setFeaturedTutorials] = useState<Tutorial[]>([]);
 
   useEffect(() => {
-    tutorialService.getBranches()
+    branchService.getBranches()
       .then((data) => setBranches(Array.isArray(data) ? data : []))
       .catch(() => setBranches([]));
 
-    tutorialService.searchTutorials("Two")
-      .then((data) => setFeaturedTutorials(Array.isArray(data) ? data : []))
+    tutorialService.getTutorials()
+      .then((data) => setFeaturedTutorials(Array.isArray(data) ? data.slice(0, 6) : []))
       .catch(() => setFeaturedTutorials([]));
   }, []);
 
@@ -38,12 +39,18 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20 md:py-32 border-b bg-gradient-to-b from-primary/10 via-background/60 to-background backdrop-blur-sm">
+          {/* Ambient Glowing Background Shapes with Blur Effect (Hero Only) */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="absolute top-20 -left-20 w-[450px] h-[450px] bg-indigo-500/35 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 left-1/4 w-[450px] h-[450px] bg-emerald-500/30 rounded-full blur-3xl" />
+          </div>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-4xl space-y-8 relative z-10">
             <div className="inline-flex items-center rounded-full border bg-background/80 backdrop-blur-md px-3 py-1 text-sm font-medium shadow-sm">
               <Sparkles className="mr-2 h-4 w-4 text-primary animate-pulse" />
-              Production-Ready Engineering Tutorials
+              All Engineering branch 
             </div>
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-6xl ">
               Master Computer Science & Modern Engineering
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -104,21 +111,25 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-12">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Popular Learning Branches</h2>
-                <p className="text-muted-foreground text-sm mt-1">Fetched live from MongoDB branches collection.</p>
+                <p className="text-muted-foreground text-sm mt-1">Fetched live from MongoDB branches collection (CSE, EEE, Mechanical, AI, Civil).</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {branches.map((branch) => (
-                <BranchCard
-                  key={branch.id || branch.slug}
-                  name={branch.name}
-                  slug={branch.slug}
-                  description={branch.description}
-                  subjectCount={branch.subjectCount || 10}
-                  icon={branch.icon || "Cpu"}
-                />
-              ))}
-            </div>
+            {branches.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">Loading branches from database...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {branches.map((branch) => (
+                  <BranchCard
+                    key={branch.id || branch.slug}
+                    name={branch.name}
+                    slug={branch.slug}
+                    description={branch.description}
+                    subjectCount={branch.subjectCount || 10}
+                    icon={branch.icon || "Cpu"}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -137,11 +148,15 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredTutorials.map((tutorial) => (
-                <TutorialCard key={tutorial.id} tutorial={tutorial} />
-              ))}
-            </div>
+            {featuredTutorials.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">Loading featured tutorials from database...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {featuredTutorials.map((tutorial) => (
+                  <TutorialCard key={tutorial.id} tutorial={tutorial} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>

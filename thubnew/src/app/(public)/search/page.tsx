@@ -27,7 +27,10 @@ function SearchContent() {
   };
 
   useEffect(() => {
-    handleSearch(initialQuery);
+    const timer = setTimeout(() => {
+      handleSearch(initialQuery);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [initialQuery]);
 
   return (

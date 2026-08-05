@@ -42,6 +42,27 @@ describe('TutorialsAdda API Unit & Health Tests', () => {
     expect(res.body.data).toBeDefined();
   });
 
+  test('GET /api/v1/tutorials/search should return search results', async () => {
+    const res = await request(app).get('/api/v1/tutorials/search?q=Computer');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.success).toEqual(true);
+    expect(res.body.data).toBeDefined();
+  });
+
+  test('POST /api/v1/auth/login with incorrect password should return error', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'student@tutorialsadda.com', password: 'wrongpassword' });
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.success).toEqual(false);
+  });
+
+  test('GET /api/v1/bookmarks without token should return 401', async () => {
+    const res = await request(app).get('/api/v1/bookmarks');
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.success).toEqual(false);
+  });
+
   test('GET /api/v1/nonexistent should return 404', async () => {
     const res = await request(app).get('/api/v1/nonexistent-route-12345');
     expect(res.statusCode).toEqual(404);

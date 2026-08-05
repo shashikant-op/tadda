@@ -1,4 +1,8 @@
+const mongoose = require('mongoose');
 const Tutorial = require('../models/Tutorial');
+const Branch = require('../models/Branch');
+const Subject = require('../models/Subject');
+const Topic = require('../models/Topic');
 const { createTutorialSchema, updateTutorialSchema } = require('../validators/tutorial.validator');
 const { createTutorialService, updateTutorialService } = require('../services/tutorial.service');
 const { uploadToCloudinary } = require('../services/upload.service');
@@ -26,9 +30,30 @@ const getTutorials = async (req, res, next) => {
     const { branch, subject, topic, status, sort } = req.query;
 
     const filter = {};
-    if (branch) filter.branch = branch;
-    if (subject) filter.subject = subject;
-    if (topic) filter.topic = topic;
+    if (branch) {
+      if (mongoose.Types.ObjectId.isValid(branch)) {
+        filter.branch = branch;
+      } else {
+        const foundBranch = await Branch.findOne({ slug: branch });
+        filter.branch = foundBranch ? foundBranch._id : null;
+      }
+    }
+    if (subject) {
+      if (mongoose.Types.ObjectId.isValid(subject)) {
+        filter.subject = subject;
+      } else {
+        const foundSubject = await Subject.findOne({ slug: subject });
+        filter.subject = foundSubject ? foundSubject._id : null;
+      }
+    }
+    if (topic) {
+      if (mongoose.Types.ObjectId.isValid(topic)) {
+        filter.topic = topic;
+      } else {
+        const foundTopic = await Topic.findOne({ slug: topic });
+        filter.topic = foundTopic ? foundTopic._id : null;
+      }
+    }
     if (status) filter.status = status;
     else filter.status = 'published'; // default public view only published unless specified
 
@@ -72,16 +97,22 @@ const searchTutorials = async (req, res, next) => {
 
 const getTutorialBySlug = async (req, res, next) => {
   try {
-    const tutorial = await Tutorial.findOne({ slug: req.params.slug })
+    const identifier = req.params.slug;
+    let query = { slug: identifier };
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      query = { $or: [{ _id: identifier }, { slug: identifier }] };
+    }
+    const tutorial = await Tutorial.findOne(query)
       .populate('branch subject topic author quiz relatedTutorials');
 
     if (!tutorial) {
       throw new ApiError(404, 'Tutorial not found');
     }
 
-    // Increment views
-    tutorial.views += 1;
-    await tutorial.save();
+    if (!req.query.edit) {
+      tutorial.views += 1;
+      await tutorial.save();
+    }
 
     res.status(200).json(new ApiResponse(200, 'Tutorial fetched successfully', { tutorial }));
   } catch (err) {
@@ -147,8 +178,20 @@ const uploadImage = async (req, res, next) => {
       throw new ApiError(400, 'Please upload an image file');
     }
 
-    const url = await uploadToCloudinary(req.file.buffer);
+    const url = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
     res.status(200).json(new ApiResponse(200, 'Image uploaded successfully', { url }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getAuthorTutorials = async (req, res, next) => {
+  try {
+    const tutorials = await Tutorial.find({ author: req.user._id })
+      .populate('branch subject topic author', 'name email avatar')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(new ApiResponse(200, 'Author tutorials fetched successfully', { tutorials }));
   } catch (err) {
     next(err);
   }
@@ -156,5 +199,5 @@ const uploadImage = async (req, res, next) => {
 
 module.exports = {
   createTutorial, getTutorials, searchTutorials, getTutorialBySlug,
-  updateTutorial, deleteTutorial, publishTutorial, uploadImage
+  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials
 };

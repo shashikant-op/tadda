@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const {
   createTutorial, getTutorials, searchTutorials, getTutorialBySlug,
-  updateTutorial, deleteTutorial, publishTutorial, uploadImage
+  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials
 } = require('../controllers/tutorial.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 const upload = require('../middleware/upload.middleware');
 
+router.get('/author/me', protect, authorize('author', 'admin'), getAuthorTutorials);
 router.get('/', getTutorials);
 router.get('/search', searchTutorials);
 router.get('/:slug', getTutorialBySlug);
