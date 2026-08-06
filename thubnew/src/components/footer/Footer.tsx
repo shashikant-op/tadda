@@ -20,9 +20,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded bg-black text-white font-bold text-xs">
-                TA
-              </div>
+              <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-7 w-7 object-cover rounded" />
               <span className="font-semibold text-sm tracking-tight text-black">TutorialsAdda</span>
             </div>
             <p className="text-xs text-[#737373] leading-relaxed">

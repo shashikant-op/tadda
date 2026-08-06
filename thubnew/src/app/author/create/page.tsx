@@ -203,12 +203,10 @@ function AuthorCreateForm() {
       <header className="border-b bg-background sticky top-0 z-30">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <Link href="/" className="flex items-center space-x-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl shadow-md">
-            TA
-          </div>
-          <span className="font-bold text-xl tracking-tight">TutorialsAdda</span>
-        </Link>
+            <Link href="/" className="flex items-center space-x-2.5">
+              <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-10 w-10 object-cover rounded-lg" />
+              <span className="font-bold text-xl tracking-tight">TutorialsAdda</span>
+            </Link>
             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium text-muted-foreground">
               <Link href={dashboardHref} className="hover:text-foreground">Dashboard</Link>
               <Link href="/author/create" className="text-foreground font-semibold">Course Publisher</Link>

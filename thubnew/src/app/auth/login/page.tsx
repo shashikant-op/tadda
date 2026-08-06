@@ -59,9 +59,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-2">
             <Link href="/">
-              <div className="flex h-10 w-10 items-center justify-center rounded bg-black text-white font-bold text-base">
-                TA
-              </div>
+              <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-10 w-10 object-cover rounded-lg" />
             </Link>
           </div>
           <CardTitle className="text-xl font-bold text-black tracking-tight">Welcome back</CardTitle>

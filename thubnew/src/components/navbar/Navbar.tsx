@@ -105,9 +105,7 @@ export function Navbar() {
       <div className="container mx-auto flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-black text-white font-bold text-sm tracking-tighter">
-            TA
-          </div>
+          <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 object-cover rounded" />
           <span className="font-semibold text-base tracking-tight text-black">TutorialsAdda</span>
         </Link>
 
@@ -304,9 +302,7 @@ export function Navbar() {
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
               <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center space-x-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-black text-white font-bold text-sm">
-                  TA
-                </div>
+                <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 object-cover rounded" />
                 <span className="font-semibold text-base text-black">TutorialsAdda</span>
               </Link>
               <button
