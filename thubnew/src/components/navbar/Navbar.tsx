@@ -27,7 +27,7 @@ export function Navbar() {
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
   const { user, isAuthenticated, logout, initializeAuth } = useAuthStore();
 
   useEffect(() => {
@@ -116,20 +116,16 @@ export function Navbar() {
               Category
             </Link>
 
-            {!isMounted ? (
-              <div className="h-7 w-14 bg-[#F0F0F0] animate-pulse rounded" />
-            ) : isAuthenticated ? (
-              <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] font-medium border-[#E5E5E5]">
+            {isAuthenticated ? (
+              <Button asChild variant="outline" size="sm" className="h-7 px-2 text-[11px] font-medium border-[#E5E5E5]">
+                <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}>
                   Dashboard
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             ) : (
-              <Link href="/auth/login">
-                <Button size="sm" className="h-7 px-2.5 bg-black text-white hover:bg-[#262626] text-[11px] font-medium">
-                  Login
-                </Button>
-              </Link>
+              <Button asChild size="sm" className="h-7 px-2.5 bg-black text-white hover:bg-[#262626] text-[11px] font-medium">
+                <Link href="/auth/login">Login</Link>
+              </Button>
             )}
           </div>
         </div>

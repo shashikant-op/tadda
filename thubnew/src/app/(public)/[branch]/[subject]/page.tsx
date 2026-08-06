@@ -123,7 +123,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             {/* Left Sidebar: Topics and Subtopics Dropdown */}
-            <aside className="lg:col-span-1 border rounded-xl bg-card p-4 space-y-4 sticky top-20 shadow-sm max-h-[calc(100vh-120px)] overflow-y-auto">
+            <aside className=" hidden sm:block lg:col-span-1  border rounded-xl bg-card p-4 space-y-4 sticky top-20 shadow-sm max-h-[calc(100vh-120px)] overflow-y-auto">
               <div className="font-bold text-sm border-b pb-3 uppercase tracking-wider text-muted-foreground flex items-center space-x-2">
                 <BookOpen className="h-4 w-4 text-primary" />
                 <span>Course Curriculum ({tutorials.length})</span>
@@ -228,28 +228,41 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   </article>
 
                   {/* Navigation between course tutorials */}
-                  <div className="flex items-center justify-between pt-8 border-t mt-12">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={currentIndex === 0}
-                      className="flex items-center space-x-2"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      <span>Previous Tutorial</span>
-                    </Button>
-                    <div className="text-xs text-muted-foreground">
-                      Module {currentIndex + 1} of {tutorials.length}
-                    </div>
-                    <Button
-                      onClick={() => setCurrentIndex((prev) => Math.min(tutorials.length - 1, prev + 1))}
-                      disabled={currentIndex === tutorials.length - 1}
-                      className="flex items-center space-x-2"
-                    >
-                      <span>Next Tutorial</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+<div className="border-t pt-4">
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    {/* Progress */}
+    <div className="order-1 text-center text-xs text-muted-foreground sm:order-2">
+      Module <span className="font-medium">{currentIndex + 1}</span> of{" "}
+      <span className="font-medium">{tutorials.length}</span>
+    </div>
+
+    {/* Navigation Buttons */}
+    <div className="order-2 flex items-center justify-between gap-3 sm:order-1 sm:flex-1">
+      <Button
+        variant="outline"
+        onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+        disabled={currentIndex === 0}
+        className="flex-1 sm:flex-none"
+      >
+        <ChevronLeft className="mr-2 h-4 w-4" />
+        Previous
+      </Button>
+
+      <Button
+        onClick={() =>
+          setCurrentIndex((prev) =>
+            Math.min(tutorials.length - 1, prev + 1)
+          )
+        }
+        disabled={currentIndex === tutorials.length - 1}
+        className="flex-1 sm:flex-none"
+      >
+        Next
+        <ChevronRight className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+</div>
                 </>
               )}
             </main>

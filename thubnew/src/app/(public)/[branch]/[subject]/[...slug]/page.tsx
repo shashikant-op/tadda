@@ -161,7 +161,7 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
 
       <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
         {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-xs text-[#737373] mb-8">
+        <nav className="flex items-center space-x-2 text-[10px] sm:text-xs text-[#737373] mb-8">
           <Link href="/" className="hover:text-black transition-colors">Home</Link>
           <ChevronRight className="h-3 w-3 text-[#A3A3A3]" />
           <Link href={`/${branch}`} className="hover:text-black transition-colors capitalize">{branchName}</Link>

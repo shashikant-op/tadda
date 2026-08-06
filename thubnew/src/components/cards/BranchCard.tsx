@@ -23,9 +23,18 @@ export function BranchCard({ name, slug, subjectCount, icon }: BranchCardProps) 
 
   return (
     <Link href={`/${slug}`}>
+      
       <div className="bg-white border border-[#E5E5E5] rounded-xl p-5 flex items-center justify-between transition-all hover:border-black cursor-pointer shadow-2xs group">
-        <div className="flex items-center space-x-4">
-          <div className="p-2.5 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] group-hover:bg-black group-hover:text-white transition-colors">
+       
+        <div className="flex items-center   space-x-4">
+           <div className=" hidden  absolute pointer-events-none opacity-20 group-hover:scale-110 group-hover:opacity-30 transition-all duration-500">
+          <img
+            src="/banner.jpeg"
+            alt=""
+            className="w-48 h-48 object-contain"
+          />
+        </div>
+          <div className="p-2.5 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] group-hover:bg-blue-100 group-hover:text-white transition-colors">
             {getIcon(icon)}
           </div>
           <div>

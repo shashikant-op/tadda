@@ -82,12 +82,34 @@ const searchTutorials = async (req, res, next) => {
       throw new ApiError(400, 'Search query "q" is required');
     }
 
-    const tutorials = await Tutorial.find(
-      { $text: { $search: q }, status: 'published' },
-      { score: { $meta: 'textScore' } }
-    )
-      .sort({ score: { $meta: 'textScore' } })
-      .populate('branch subject topic author', 'name email');
+    const regex = new RegExp(q.trim(), 'i');
+
+    // Find matching branches, subjects (courses), and topics case-insensitively
+    const [matchingBranches, matchingSubjects, matchingTopics] = await Promise.all([
+      Branch.find({ name: regex }).select('_id'),
+      Subject.find({ name: regex }).select('_id'),
+      Topic.find({ name: regex }).select('_id'),
+    ]);
+
+    const branchIds = matchingBranches.map(b => b._id);
+    const subjectIds = matchingSubjects.map(s => s._id);
+    const topicIds = matchingTopics.map(t => t._id);
+
+    // Global query matching title, description, or parent branch/subject/topic names
+    const query = {
+      status: 'published',
+      $or: [
+        { title: regex },
+        { description: regex },
+        ...(branchIds.length > 0 ? [{ branch: { $in: branchIds } }] : []),
+        ...(subjectIds.length > 0 ? [{ subject: { $in: subjectIds } }] : []),
+        ...(topicIds.length > 0 ? [{ topic: { $in: topicIds } }] : []),
+      ],
+    };
+
+    const tutorials = await Tutorial.find(query)
+      .populate('branch subject topic author', 'name email')
+      .sort({ createdAt: -1 });
 
     res.status(200).json(new ApiResponse(200, 'Search results fetched successfully', { tutorials }));
   } catch (err) {
