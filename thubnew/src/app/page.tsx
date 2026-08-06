@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Search, ArrowRight, Sparkles, BookOpen, Award, Users } from "lucide-react";
+import { Search, ArrowRight, BookOpen, Award, Users, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -29,93 +29,76 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground relative selection:bg-primary/20">
+    <div className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white">
       <Navbar />
 
-      <main className="flex-1 relative">
-        <div className="glossy-glow top-20 left-1/2 -translate-x-1/2" />
-        <div className="glossy-glow top-[600px] left-1/4" />
-        <div className="glossy-glow top-[1200px] right-1/4" />
-
+      <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 md:py-32 border-b bg-gradient-to-b from-primary/10 via-background/60 to-background backdrop-blur-sm">
-          {/* Ambient Glowing Background Shapes with Blur Effect (Hero Only) */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-            <div className="absolute top-20 -left-20 w-[450px] h-[450px] bg-indigo-500/35 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 left-1/4 w-[450px] h-[450px] bg-emerald-500/30 rounded-full blur-3xl" />
-          </div>
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-4xl space-y-8 relative z-10">
-            <div className="inline-flex items-center rounded-full border bg-background/80 backdrop-blur-md px-3 py-1 text-sm font-medium shadow-sm">
-              <Sparkles className="mr-2 h-4 w-4 text-primary animate-pulse" />
-              All Engineering branch 
+        <section className="relative overflow-py-20 sm:py-28 md:py-36 border-b border-[#E5E5E5] bg-white">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-4xl space-y-8">
+            <div className="inline-flex items-center rounded-full border border-[#E5E5E5] bg-[#FAFAFA] px-3.5 py-1 text-xs font-medium text-[#525252]">
+              <Terminal className="mr-2 h-3.5 w-3.5 text-black" />
+              Engineering Knowledge Base &middot; Live Database
             </div>
-            <h1 className="text-4xl sm:text-6xl ">
-              Master Computer Science & Modern Engineering
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-black leading-[1.1]">
+              Master Engineering. <br />
+              Without the Noise.
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Explore in-depth tutorials, production code examples, interactive quizzes, and structured learning paths from MongoDB database.
+            <p className="text-base sm:text-lg text-[#737373] max-w-2xl mx-auto leading-relaxed">
+              A pristine technical platform for computer science and modern systems engineering. Zero clutter. Pure content.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto w-full pt-2">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#737373]" />
                 <Input
                   placeholder="Search algorithms, React, Docker..."
-                  className="pl-9 h-11 w-full bg-background/80 backdrop-blur-md shadow-sm"
+                  className="pl-10 h-11 w-full bg-[#FAFAFA] border-[#E5E5E5] text-sm text-black focus-visible:ring-0 focus-visible:border-black"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Link href={`/search?q=${encodeURIComponent(searchQuery)}`}>
-                <Button className="w-full sm:w-auto h-11 px-6 shadow-lg shadow-primary/20">Explore</Button>
+              <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto h-11 px-6 bg-black text-white hover:bg-[#262626] text-sm font-medium">Explore</Button>
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 border-t text-left max-w-3xl mx-auto">
-              <div className="flex items-center space-x-3 p-3 rounded-xl bg-background/40 backdrop-blur-md border border-white/10 shadow-sm">
-                <BookOpen className="h-8 w-8 text-primary" />
-                <div>
-                  <div className="font-bold text-lg">500+</div>
-                  <div className="text-xs text-muted-foreground">Tutorials</div>
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-16 border-t border-[#E5E5E5] text-left max-w-3xl mx-auto">
+              <div className="p-4 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA]">
+                <BookOpen className="h-5 w-5 text-black mb-2" />
+                <div className="font-bold text-xl text-black">500+</div>
+                <div className="text-xs text-[#737373] mt-0.5">Tutorials</div>
               </div>
-              <div className="flex items-center space-x-3 p-3 rounded-xl bg-background/40 backdrop-blur-md border border-white/10 shadow-sm">
-                <Award className="h-8 w-8 text-primary" />
-                <div>
-                  <div className="font-bold text-lg">50+</div>
-                  <div className="text-xs text-muted-foreground">Quizzes</div>
-                </div>
+              <div className="p-4 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA]">
+                <Award className="h-5 w-5 text-black mb-2" />
+                <div className="font-bold text-xl text-black">50+</div>
+                <div className="text-xs text-[#737373] mt-0.5">Quizzes</div>
               </div>
-              <div className="flex items-center space-x-3 p-3 rounded-xl bg-background/40 backdrop-blur-md border border-white/10 shadow-sm">
-                <Users className="h-8 w-8 text-primary" />
-                <div>
-                  <div className="font-bold text-lg">100k+</div>
-                  <div className="text-xs text-muted-foreground">Learners</div>
-                </div>
+              <div className="p-4 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA]">
+                <Users className="h-5 w-5 text-black mb-2" />
+                <div className="font-bold text-xl text-black">100k+</div>
+                <div className="text-xs text-[#737373] mt-0.5">Learners</div>
               </div>
-              <div className="flex items-center space-x-3 p-3 rounded-xl bg-background/40 backdrop-blur-md border border-white/10 shadow-sm">
-                <Sparkles className="h-8 w-8 text-primary" />
-                <div>
-                  <div className="font-bold text-lg">100%</div>
-                  <div className="text-xs text-muted-foreground">Live API</div>
-                </div>
+              <div className="p-4 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA]">
+                <Terminal className="h-5 w-5 text-black mb-2" />
+                <div className="font-bold text-xl text-black">100%</div>
+                <div className="text-xs text-[#737373] mt-0.5">Open Access</div>
               </div>
             </div>
           </div>
         </section>
 
         {/* Popular Branches Section */}
-        <section className="py-16 md:py-24 border-b relative">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-12">
+        <section className="py-20 md:py-28 border-b border-[#E5E5E5] bg-white">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Popular Learning Branches</h2>
-                <p className="text-muted-foreground text-sm mt-1">Fetched live from MongoDB branches collection (CSE, EEE, Mechanical, AI, Civil).</p>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">Learning Branches</h2>
+                <p className="text-[#737373] text-sm mt-1">Structured knowledge tracks fetched live from the core database.</p>
               </div>
             </div>
             {branches.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Loading branches from database...</div>
+              <div className="text-center py-16 text-[#737373]">Loading branches...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {branches.map((branch) => (
@@ -134,22 +117,22 @@ export default function HomePage() {
         </section>
 
         {/* Featured Tutorials Section */}
-        <section className="py-16 md:py-24 bg-muted/20 border-b backdrop-blur-md">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-12">
+        <section className="py-20 md:py-28 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Featured Tutorials</h2>
-                <p className="text-muted-foreground text-sm mt-1">Fetched live from backend API database.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">Featured Documentation</h2>
+                <p className="text-[#737373] text-sm mt-1">Hand-crafted guides and reference tutorials.</p>
               </div>
               <Link href="/search">
-                <Button variant="ghost" className="flex items-center space-x-1">
+                <Button variant="ghost" className="text-xs font-medium text-black hover:bg-[#F0F0F0] flex items-center space-x-1.5">
                   <span>View all</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             </div>
             {featuredTutorials.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Loading featured tutorials from database...</div>
+              <div className="text-center py-16 text-[#737373]">Loading tutorials...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {featuredTutorials.map((tutorial) => (
@@ -157,6 +140,32 @@ export default function HomePage() {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Why Learn Here Section */}
+        <section className="py-20 md:py-28 bg-white border-b border-[#E5E5E5]">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-12">
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <h2 className="text-3xl font-bold tracking-tight text-black">Built for serious engineering focus.</h2>
+              <p className="text-[#737373] text-sm leading-relaxed">
+                We stripped away ads, popups, and visual noise to give you pure technical clarity.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+              <div className="p-6 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] space-y-2">
+                <div className="font-semibold text-black text-sm">Notion-Grade Reading</div>
+                <p className="text-xs text-[#737373] leading-relaxed">Clean typography, responsive sidebar navigation, and syntax-highlighted code blocks.</p>
+              </div>
+              <div className="p-6 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] space-y-2">
+                <div className="font-semibold text-black text-sm">Interactive Validation</div>
+                <p className="text-xs text-[#737373] leading-relaxed">Test your understanding with topic-specific quizzes and automated progress tracking.</p>
+              </div>
+              <div className="p-6 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] space-y-2">
+                <div className="font-semibold text-black text-sm">Production Ready</div>
+                <p className="text-xs text-[#737373] leading-relaxed">Real-world code examples and architectural blueprints you can apply directly to your projects.</p>
+              </div>
+            </div>
           </div>
         </section>
       </main>

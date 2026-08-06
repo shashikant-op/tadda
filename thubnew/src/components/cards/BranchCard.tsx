@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Cpu, Globe, Brain, Cloud, Shield, Network } from "lucide-react";
+import { Cpu, Globe, Brain, Cloud, Shield, Network, ChevronRight } from "lucide-react";
 
 interface BranchCardProps {
   name: string;
@@ -10,36 +9,32 @@ interface BranchCardProps {
   icon?: string;
 }
 
-export function BranchCard({ name, slug, description, subjectCount, icon }: BranchCardProps) {
+export function BranchCard({ name, slug, subjectCount, icon }: BranchCardProps) {
   const getIcon = (iconName?: string) => {
     switch (iconName) {
-      case "Cpu": return <Cpu className="h-6 w-6 text-primary" />;
-      case "Globe": return <Globe className="h-6 w-6 text-primary" />;
-      case "Brain": return <Brain className="h-6 w-6 text-primary" />;
-      case "Cloud": return <Cloud className="h-6 w-6 text-primary" />;
-      case "Shield": return <Shield className="h-6 w-6 text-primary" />;
-      default: return <Network className="h-6 w-6 text-primary" />;
+      case "Cpu": return <Cpu className="h-4 w-4 text-black" />;
+      case "Globe": return <Globe className="h-4 w-4 text-black" />;
+      case "Brain": return <Brain className="h-4 w-4 text-black" />;
+      case "Cloud": return <Cloud className="h-4 w-4 text-black" />;
+      case "Shield": return <Shield className="h-4 w-4 text-black" />;
+      default: return <Network className="h-4 w-4 text-black" />;
     }
   };
 
   return (
     <Link href={`/${slug}`}>
-      <Card className="transition-all hover:shadow-md hover:border-primary/50 cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              {getIcon(icon)}
-            </div>
-            {subjectCount && (
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-muted">
-                {subjectCount} Subjects
-              </span>
-            )}
+      <div className="bg-white border border-[#E5E5E5] rounded-xl p-5 flex items-center justify-between transition-all hover:border-black cursor-pointer shadow-2xs group">
+        <div className="flex items-center space-x-4">
+          <div className="p-2.5 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] group-hover:bg-black group-hover:text-white transition-colors">
+            {getIcon(icon)}
           </div>
-          <CardTitle className="text-xl mb-1">{name}</CardTitle>
-          <CardDescription className="line-clamp-2">{description}</CardDescription>
-        </CardHeader>
-      </Card>
+          <div>
+            <h3 className="font-semibold text-sm sm:text-base text-black group-hover:underline">{name}</h3>
+            <p className="text-xs text-[#737373] mt-0.5">{subjectCount || 10} Subjects &middot; Explore syllabus</p>
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 text-[#A3A3A3] group-hover:text-black group-hover:translate-x-0.5 transition-transform" />
+      </div>
     </Link>
   );
 }

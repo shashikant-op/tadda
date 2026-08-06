@@ -44,45 +44,50 @@ export default function LoginPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Invalid email or password. Try admin@tutorialsadda.com, author@tutorialsadda.com, or student@tutorialsadda.com (password: password123)";
+    } catch (err: unknown) {
+      const errObj = err as Record<string, unknown>;
+      const response = errObj?.response as Record<string, unknown> | undefined;
+      const dataResp = response?.data as Record<string, unknown> | undefined;
+      const msg = (dataResp?.message as string) || "Invalid email or password. Try student@tutorialsadda.com (password: password123)";
       setError(msg);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4 py-12">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 py-12">
+      <Card className="w-full max-w-md border-[#E5E5E5] bg-white shadow-xl rounded-xl p-2">
+        <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-2xl">
-              TA
-            </div>
+            <Link href="/">
+              <div className="flex h-10 w-10 items-center justify-center rounded bg-black text-white font-bold text-base">
+                TA
+              </div>
+            </Link>
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle className="text-xl font-bold text-black tracking-tight">Welcome back</CardTitle>
+          <CardDescription className="text-xs text-[#737373]">Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {error && <div className="p-3 text-sm bg-destructive/10 text-destructive rounded-md">{error}</div>}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input type="email" placeholder="student@tutorialsadda.com" {...register("email")} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            {error && <div className="p-3 text-xs bg-[#FAFAFA] border border-[#E5E5E5] text-black rounded-lg">{error}</div>}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-black">Email</label>
+              <Input type="email" placeholder="student@tutorialsadda.com" className="h-10 text-xs border-[#E5E5E5] focus-visible:ring-0 focus-visible:border-black" {...register("email")} />
+              {errors.email && <p className="text-[11px] text-red-600">{errors.email.message}</p>}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
-              <Input type="password" placeholder="••••••••" {...register("password")} />
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-black">Password</label>
+              <Input type="password" placeholder="••••••••" className="h-10 text-xs border-[#E5E5E5] focus-visible:ring-0 focus-visible:border-black" {...register("password")} />
+              {errors.password && <p className="text-[11px] text-red-600">{errors.password.message}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full h-10 bg-black text-white hover:bg-[#262626] text-xs font-medium" disabled={isSubmitting}>
               {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center text-sm text-muted-foreground">
+        <CardFooter className="flex justify-center text-xs text-[#737373] pt-4 pb-4">
           Don&apos;t have an account?&nbsp;
-          <Link href="/auth/register" className="text-primary font-medium hover:underline">
+          <Link href="/auth/register" className="text-black font-medium hover:underline">
             Sign up
           </Link>
         </CardFooter>

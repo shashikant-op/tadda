@@ -53,63 +53,63 @@ export default function DynamicBranchPage({ params }: PageProps) {
   }, [branchSlug]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-white text-black">
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-6xl">
-        <nav className="flex items-center space-x-2 text-xs text-muted-foreground mb-6">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground font-medium capitalize">{branch?.name || branchSlug.replace("-", " ")}</span>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-6xl space-y-10">
+        <nav className="flex items-center space-x-2 text-xs text-[#6B7280]">
+          <Link href="/" className="hover:text-black">Home</Link>
+          <ChevronRight className="h-3 w-3 text-[#9CA3AF]" />
+          <span className="text-black font-medium capitalize">{branch?.name || branchSlug.replace("-", " ")}</span>
         </nav>
 
         {/* Header */}
-        <div className="flex items-center space-x-4 mb-12 p-6 rounded-xl border bg-primary/5">
-          <div className="p-3 rounded-xl bg-primary/10 text-primary">
-            <Cpu className="h-10 w-10" />
+        <div className="flex items-center space-x-5 p-6 sm:p-8 rounded-2xl border border-[#E5E5E5] bg-[#F8F8F8]">
+          <div className="p-4 rounded-xl bg-white border border-[#E5E5E5] text-black shadow-xs">
+            <Cpu className="h-8 w-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">{branch?.name || branchSlug}</h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">{branch?.name || branchSlug}</h1>
+            <p className="text-[#6B7280] text-sm mt-1">
               {branch?.description || `Explore engineering tutorials, subjects, and courses for ${branchSlug}.`}
             </p>
           </div>
         </div>
 
         {errorMessage && (
-          <div className="mb-8 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 flex items-center space-x-3">
-            <AlertCircle className="h-5 w-5 shrink-0" />
+          <div className="p-4 rounded-xl border border-[#E5E5E5] bg-[#F8F8F8] text-black flex items-center space-x-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-black" />
             <div className="text-sm">
               <div className="font-semibold">Backend Connection Notice</div>
-              <div>{errorMessage} (Start backend with: <code className="bg-background px-1.5 py-0.5 rounded">cd backend && npm run dev</code>)</div>
+              <div>{errorMessage}</div>
             </div>
           </div>
         )}
 
         {isLoading ? (
-          <div className="text-center py-20 text-muted-foreground">Loading branch and subjects from MongoDB...</div>
+          <div className="text-center py-20 text-[#6B7280]">Loading branch and subjects...</div>
         ) : (
           <>
             {/* Subjects Grid */}
-            <div className="space-y-6 mb-12">
-              <h2 className="text-2xl font-bold tracking-tight">Subjects ({subjects.length})</h2>
+            <div className="space-y-6">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-black">Subjects ({subjects.length})</h2>
               {subjects.length === 0 ? (
-                <Card className="p-6 text-center text-muted-foreground">No subjects found for this branch in database.</Card>
+                <div className="p-8 text-center text-[#6B7280] border border-[#E5E5E5] rounded-xl bg-white">No subjects found for this branch.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {subjects.map((subject) => (
                     <Link key={subject.id || subject.slug} href={`/${branchSlug}/${subject.slug}`}>
-                      <Card className="hover:shadow-md transition-all h-full">
-                        <CardHeader>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-muted">
+                      <div className="minimal-card p-6 h-full flex flex-col justify-between hover:border-black transition-colors">
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-[#F8F8F8] border border-[#E5E5E5] text-[#374151]">
                               Subject
                             </span>
                           </div>
-                          <CardTitle className="text-lg">{subject.name}</CardTitle>
-                          <CardDescription className="line-clamp-2 mt-1">{subject.description || "Explore tutorials on " + subject.name}</CardDescription>
-                        </CardHeader>
-                      </Card>
+                          <h3 className="text-lg font-bold text-black mb-1">{subject.name}</h3>
+                          <p className="text-sm text-[#6B7280] line-clamp-2">{subject.description || "Explore tutorials on " + subject.name}</p>
+                        </div>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -117,10 +117,10 @@ export default function DynamicBranchPage({ params }: PageProps) {
             </div>
 
             {/* Tutorials in Branch */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold tracking-tight">Top Tutorials ({tutorials.length})</h2>
+            <div className="space-y-6 pt-6">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-black">Top Tutorials ({tutorials.length})</h2>
               {tutorials.length === 0 ? (
-                <Card className="p-6 text-center text-muted-foreground">No tutorials found for this branch in database.</Card>
+                <div className="p-8 text-center text-[#6B7280] border border-[#E5E5E5] rounded-xl bg-white">No tutorials found for this branch.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {tutorials.map((tutorial) => (

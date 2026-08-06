@@ -15,54 +15,54 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="border-t bg-muted/40">
+    <footer className="border-t border-[#E5E5E5] bg-[#FAFAFA] text-[#171717]">
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
+              <div className="flex h-7 w-7 items-center justify-center rounded bg-black text-white font-bold text-xs">
                 TA
               </div>
-              <span className="font-bold text-lg tracking-tight">TutorialsAdda</span>
+              <span className="font-semibold text-sm tracking-tight text-black">TutorialsAdda</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              A premium engineering tutorial platform designed for developers and students to master modern technologies.
+            <p className="text-xs text-[#737373] leading-relaxed">
+              A premium engineering knowledge platform designed for developers and students to master modern systems.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm mb-4">Engineering Branches</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="font-semibold text-xs text-black uppercase tracking-wider mb-3">Branches</h4>
+            <ul className="space-y-2 text-xs text-[#737373]">
               {branches.map((b) => (
                 <li key={b.id || b.slug}>
-                  <Link href={`/${b.slug}`} className="hover:text-primary">{b.name}</Link>
+                  <Link href={`/${b.slug}`} className="hover:text-black transition-colors">{b.name}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm mb-4">Resources</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/search" className="hover:text-primary">Search Tutorials</Link></li>
-              <li><Link href="/dashboard" className="hover:text-primary">Student Dashboard</Link></li>
-              <li><Link href="/auth/login" className="hover:text-primary">Sign In</Link></li>
+            <h4 className="font-semibold text-xs text-black uppercase tracking-wider mb-3">Platform</h4>
+            <ul className="space-y-2 text-xs text-[#737373]">
+              <li><Link href="/search" className="hover:text-black transition-colors">Search Documentation</Link></li>
+              <li><Link href="/dashboard" className="hover:text-black transition-colors">Student Dashboard</Link></li>
+              <li><Link href="/auth/login" className="hover:text-black transition-colors">Sign In</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm mb-4">Legal & Support</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><span className="hover:text-primary cursor-pointer">Privacy Policy</span></li>
-              <li><span className="hover:text-primary cursor-pointer">Terms of Service</span></li>
-              <li><span className="hover:text-primary cursor-pointer">Contact Support</span></li>
+            <h4 className="font-semibold text-xs text-black uppercase tracking-wider mb-3">Legal</h4>
+            <ul className="space-y-2 text-xs text-[#737373]">
+              <li><span className="hover:text-black cursor-pointer">Privacy Policy</span></li>
+              <li><span className="hover:text-black cursor-pointer">Terms of Service</span></li>
+              <li><span className="hover:text-black cursor-pointer">Security</span></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground">
+        <div className="mt-10 border-t border-[#E5E5E5] pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#737373]">
           <p>&copy; {new Date().getFullYear()} TutorialsAdda Inc. All rights reserved.</p>
-          <p className="mt-4 sm:mt-0">Built with Next.js 16 & TypeScript ($200k+ SaaS Quality)</p>
+          <p className="mt-2 sm:mt-0">Crafted with precision &middot; Minimal Architecture</p>
         </div>
       </div>
     </footer>

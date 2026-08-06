@@ -1,537 +1,503 @@
-# Production Task: Replace the Current Text Editor with a Production-Ready Rich Text Editor
+# Mobile UI/UX Design Prompt (Premium $400M Product Quality)
 
-You are a Senior Staff Frontend Engineer with 20+ years of experience building production CMS platforms.
+You are one of the world's best Product Designers and Mobile UX Experts. You have designed products for Apple, Linear, Stripe, Airbnb, Notion, Vercel, Arc Browser, and Tesla.
 
-Your task is to completely audit and rebuild the text editor section. Do NOT make superficial fixes. The final implementation must be production-ready, secure, maintainable, accessible, and scalable.
+Your task is to completely redesign my website into a world-class mobile experience.
+
+The reference image(s) I uploaded define the design direction. Use them only for inspiration. Do NOT copy them.
 
 ## Goal
 
-Transform the current editor into a professional editor comparable to Notion, Medium, GitBook, or Hashnode.
+Create a premium mobile experience that feels like a product built by a company valued at over $400 million.
 
-The current implementation uses `contentEditable` and `document.execCommand`, which are deprecated and unsuitable for production.
+Every screen should look polished, intentional, elegant, and production-ready.
 
-Do not preserve the existing implementation unless absolutely necessary.
-
----
-
-# Requirements
-
-## 1. Remove Deprecated APIs
-
-Completely remove every usage of:
-
-* document.execCommand()
-* prompt()
-* direct HTML insertion
-* browser-dependent formatting
-
-Do not leave dead code.
+The final design should impress users within the first 3 seconds.
 
 ---
 
-## 2. Use TipTap
+# Design Philosophy
 
-Replace the editor with TipTap.
+Minimalism over decoration.
 
-Install and configure:
+Function over clutter.
 
-* @tiptap/react
-* @tiptap/starter-kit
-* @tiptap/extension-placeholder
-* @tiptap/extension-link
-* @tiptap/extension-image
-* @tiptap/extension-underline
-* @tiptap/extension-text-align
-* @tiptap/extension-highlight
-* @tiptap/extension-character-count
-* @tiptap/extension-task-list
-* @tiptap/extension-task-item
-* @tiptap/extension-code-block-lowlight
+Whitespace over unnecessary elements.
 
-Organize extensions cleanly.
+Typography over excessive graphics.
+
+Premium interactions over flashy animations.
+
+Every pixel must have a purpose.
 
 ---
 
-## 3. Modular Architecture
+# Visual Style
 
-Refactor the editor into reusable components.
+Create a design inspired by:
 
-Example:
+* Apple
+* Linear
+* Notion
+* Stripe
+* Vercel
+* Arc Browser
+* Raycast
 
-components/editor/
+The UI should feel modern, luxurious, and timeless.
 
-Editor.tsx
-
-EditorToolbar.tsx
-
-BubbleMenu.tsx
-
-FloatingMenu.tsx
-
-EditorImageUpload.tsx
-
-EditorLinkDialog.tsx
-
-EditorCharacterCounter.tsx
-
-EditorPreview.tsx
-
-EditorSlashMenu.tsx
-
-hooks/
-
-useEditorAutosave.ts
-
-useEditorHistory.ts
-
-lib/
-
-editor.ts
-
-Do not keep everything inside one page.
+Avoid trendy designs that age quickly.
 
 ---
 
-## 4. Toolbar
+# Color Palette
 
-Implement a professional toolbar.
+Only use monochrome colors.
 
-Support:
+White
 
-* Bold
-* Italic
-* Underline
-* Strike
-* Code
-* Inline code
-* H1
-* H2
-* H3
-* Paragraph
-* Bullet list
-* Ordered list
-* Task list
-* Quote
-* Divider
-* Code block
-* Image
-* Link
-* Undo
-* Redo
-* Text alignment
-* Highlight
-* Clear formatting
+Black
 
-Toolbar buttons must show active state.
+Gray Scale
+
+No gradients.
+
+No bright colors.
+
+No colorful icons.
+
+No glassmorphism.
+
+No neumorphism.
+
+No glowing effects.
+
+No unnecessary shadows.
+
+Use subtle borders instead of heavy shadows.
 
 ---
 
-## 5. Floating Bubble Menu
+# Typography
 
-When text is selected show:
+Large bold headlines.
 
-Bold
+Clean hierarchy.
 
-Italic
+Comfortable line height.
 
-Link
+Readable spacing.
 
-Highlight
+Minimal font weights.
 
-Code
+Perfect text alignment.
 
-Heading
-
-Exactly like Notion.
+Typography should communicate luxury.
 
 ---
 
-## 6. Floating Slash Command
+# Layout
 
-Typing "/"
+Completely mobile-first.
 
-opens a searchable command menu.
+Optimize for:
 
-Commands:
+320px
 
-Heading
+360px
 
-Image
+375px
 
-Video
+390px
 
-Divider
+412px
 
-Code Block
+428px
 
-Quote
+480px
 
-Checklist
+Every screen must scale beautifully.
 
-Table
+No horizontal scrolling.
 
-Callout
+No layout shifts.
 
-Horizontal Rule
-
-The menu must support keyboard navigation.
+Everything should feel naturally balanced.
 
 ---
 
-## 7. Image Upload
+# Navigation
 
-Do NOT use prompt().
+Create an elegant mobile navigation.
 
-Implement image upload.
+Sticky navigation.
 
-Requirements:
+Smooth transitions.
 
-Drag & Drop
+Simple hamburger menu.
 
-Paste Image
+Full-screen navigation drawer.
 
-Click Upload
+Beautiful search experience.
 
-Upload Progress
+Clear visual hierarchy.
 
-Image Preview
-
-Image Resize
-
-Image Delete
-
-Only insert uploaded URLs.
-
-Never insert raw HTML.
+One-handed usability.
 
 ---
 
-## 8. Link Dialog
+# Components
 
-Replace prompt() with a proper modal.
+Redesign every component.
 
-Fields:
+Cards
 
-URL
+Buttons
 
-Title
+Inputs
 
-Open in new tab
-
-rel="nofollow"
-
-Validate URL.
-
----
-
-## 9. Autosave
-
-Implement debounce autosave.
-
-Flow:
-
-User types
-
-↓
-
-Wait 2 seconds
-
-↓
-
-PATCH draft
-
-↓
-
-Show
-
-Saving...
-
-Saved
-
-Failed
-
-Never spam API calls.
-
----
-
-## 10. Unsaved Changes
-
-Warn user before leaving page.
-
-Support:
-
-Browser refresh
-
-Closing tab
-
-Changing route
-
----
-
-## 11. Word Count
-
-Display:
-
-Words
-
-Characters
-
-Paragraphs
-
-Estimated reading time
-
-Live updates.
-
----
-
-## 12. Paste Handling
-
-Intercept paste.
-
-Remove:
-
-inline styles
-
-office html
-
-empty spans
-
-font tags
-
-junk markup
-
-Keep:
-
-bold
-
-italic
-
-lists
-
-tables
-
-links
-
-images
-
-Produce clean HTML/JSON.
-
----
-
-## 13. Keyboard Shortcuts
-
-Implement:
-
-Ctrl+B
-
-Ctrl+I
-
-Ctrl+U
-
-Ctrl+Shift+7
-
-Ctrl+Shift+8
-
-Ctrl+K
-
-Ctrl+Z
-
-Ctrl+Y
-
-Tab
-
-Shift+Tab
-
-Escape
-
----
-
-## 14. Accessibility
-
-Toolbar buttons must include:
-
-aria-label
-
-aria-pressed
-
-role
-
-keyboard navigation
-
-focus indicators
-
-Screen reader compatible.
-
----
-
-## 15. Mobile Support
-
-Toolbar must be responsive.
-
-Support:
-
-Horizontal scrolling
-
-Sticky toolbar
-
-Touch friendly controls
-
-No overflow.
-
----
-
-## 16. Performance
-
-Prevent unnecessary rerenders.
-
-Use:
-
-React.memo
-
-useCallback
-
-useMemo
-
-Lazy loading
-
-Debounced updates
-
-Avoid expensive renders.
-
----
-
-## 17. Security
-
-Sanitize all HTML.
-
-Use DOMPurify.
-
-Prevent:
-
-XSS
-
-Script injection
-
-Malformed HTML
-
-Unsafe attributes
-
-Never trust user HTML.
-
----
-
-## 18. Storage
-
-Do NOT store arbitrary HTML.
-
-Store TipTap JSON document.
-
-Convert to HTML only when rendering.
-
-Maintain backward compatibility with existing HTML if possible.
-
----
-
-## 19. Preview
-
-Preview must render exactly what the editor produces.
-
-No rendering mismatches.
-
-Support:
-
-Code blocks
-
-Images
+Forms
 
 Lists
 
 Tables
 
-Links
+Tabs
 
-Task lists
+Badges
 
-Headings
+Avatars
 
----
+Progress
 
-## 20. Error Handling
+Alerts
 
-Handle:
+Dialogs
 
-Image upload failures
+Bottom Sheets
 
-Autosave failures
+Drawers
 
-Network loss
+Dropdowns
 
-Invalid links
+Accordions
 
-Invalid content
+Carousels
 
-Show user-friendly error messages.
+Pagination
 
----
+Breadcrumbs
 
-## 21. Production Code Quality
-
-Strict TypeScript.
-
-No any.
-
-No duplicated logic.
-
-No console.log left behind.
-
-No unused imports.
-
-No dead state.
-
-No deprecated APIs.
-
-No memory leaks.
-
-No race conditions.
-
-No hydration issues.
+Everything should follow one consistent design language.
 
 ---
 
-## 22. Code Review
+# Every Page Must Be Redesigned
 
-After implementation:
+Home
 
-* Remove all obsolete editor code.
-* Remove document.execCommand().
-* Remove contentEditable implementation.
-* Remove prompt().
-* Remove dangerous HTML insertion.
-* Fix lint warnings.
-* Fix TypeScript errors.
-* Ensure the project builds successfully.
-* Ensure the editor works in Chrome, Firefox, Safari, and Edge.
+About
+
+Courses
+
+Course Details
+
+Category
+
+Search
+
+Blog
+
+Article
+
+Pricing
+
+FAQ
+
+Contact
+
+Dashboard
+
+Profile
+
+Settings
+
+Bookmarks
+
+Wishlist
+
+Checkout
+
+Login
+
+Signup
+
+Forgot Password
+
+Verify Email
+
+404
+
+Empty States
+
+Loading States
+
+Error States
+
+Success States
+
+Every page should look like part of the same premium product.
 
 ---
 
-## Deliverables
+# Mobile UX
 
-1. Complete production-ready TipTap editor.
-2. Modular component architecture.
-3. Clean TypeScript implementation.
-4. Fully responsive UI.
-5. Accessible toolbar.
-6. Autosave.
-7. Image upload.
-8. Link modal.
-9. Slash commands.
-10. Bubble menu.
-11. Keyboard shortcuts.
-12. Secure HTML sanitization.
-13. Word count.
-14. Reading time.
-15. Unsaved changes protection.
-16. No deprecated browser APIs.
-17. No regressions in existing tutorial create/edit functionality.
+Optimize for thumb reach.
 
-Do not stop after partial implementation. Continue until every requirement above is completed, all lint errors are fixed, and the project compiles successfully.
+Large touch targets.
+
+Minimum touch size 44px.
+
+Comfortable spacing.
+
+Fast navigation.
+
+Simple interactions.
+
+Reduce cognitive load.
+
+Use bottom sheets where appropriate.
+
+Use floating action buttons only when necessary.
+
+Use sticky action buttons on important pages.
+
+---
+
+# Cards
+
+Elegant rounded corners.
+
+Thin gray borders.
+
+Soft elevation.
+
+Consistent spacing.
+
+Clear information hierarchy.
+
+Perfect padding.
+
+No visual clutter.
+
+---
+
+# Buttons
+
+Large.
+
+Premium.
+
+Accessible.
+
+Consistent.
+
+Clear hierarchy.
+
+Primary
+
+Secondary
+
+Ghost
+
+Text
+
+Icon
+
+Loading
+
+Disabled
+
+All states must be designed.
+
+---
+
+# Forms
+
+Simple.
+
+Clean.
+
+Accessible.
+
+Large fields.
+
+Floating labels or elegant labels.
+
+Proper validation.
+
+Helpful error messages.
+
+Password visibility toggle.
+
+Beautiful OTP input.
+
+---
+
+# Icons
+
+Minimal.
+
+Consistent.
+
+Thin strokes.
+
+Professional.
+
+Never oversized.
+
+---
+
+# Images
+
+Responsive.
+
+Lazy loaded.
+
+Correct aspect ratios.
+
+Elegant cropping.
+
+Rounded corners.
+
+Proper placeholders.
+
+---
+
+# Animations
+
+Very subtle.
+
+Smooth.
+
+Premium.
+
+150–250ms duration.
+
+Fade
+
+Slide
+
+Scale
+
+Micro interactions.
+
+No excessive animations.
+
+Never distract the user.
+
+---
+
+# Accessibility
+
+WCAG compliant.
+
+Keyboard friendly.
+
+Proper focus states.
+
+Semantic structure.
+
+Readable contrast.
+
+Screen reader friendly.
+
+---
+
+# Performance
+
+Design with performance in mind.
+
+Avoid unnecessary complexity.
+
+Minimize layout shifts.
+
+Use reusable components.
+
+Optimize perceived performance.
+
+---
+
+# Design Consistency
+
+Every spacing value should follow an 8-point grid.
+
+Use consistent border radius.
+
+Consistent icon sizes.
+
+Consistent typography.
+
+Consistent paddings.
+
+Consistent margins.
+
+Nothing should feel random.
+
+---
+
+# Code Quality
+
+If implementing the design:
+
+Use reusable components.
+
+Avoid duplicate code.
+
+Do not break existing functionality.
+
+Keep APIs unchanged.
+
+Keep backend integration intact.
+
+Do not use hardcoded data.
+
+Maintain clean architecture.
+
+Production-ready code only.
+
+---
+
+# Final Quality Checklist
+
+✓ Premium mobile-first design
+
+✓ Luxury minimalist interface
+
+✓ Feels like an Apple-quality product
+
+✓ Every page redesigned
+
+✓ Perfect spacing
+
+✓ Pixel-perfect alignment
+
+✓ Fast and responsive
+
+✓ Accessible
+
+✓ Modern typography
+
+✓ Consistent design system
+
+✓ Excellent UX
+
+✓ Production-ready
+
+✓ Smooth interactions
+
+✓ Zero visual clutter
+
+✓ High-end SaaS quality
+
+The final result should feel like it was designed by an elite product design team for a company worth hundreds of millions of dollars. Focus on simplicity, elegance, usability, and exceptional attention to detail rather than flashy visuals.
