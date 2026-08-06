@@ -103,11 +103,46 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#E5E5E5] bg-white/90 backdrop-blur-md">
       <div className="container mx-auto flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2.5">
-          <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 object-cover rounded" />
-          <span className="font-semibold text-base tracking-tight text-black">TutorialsAdda</span>
-        </Link>
+        {/* ================= MOBILE SECTION ================= */}
+        {/* This section renders only on mobile screens (md:hidden) with logo, category link, and login section without dropdowns */}
+        <div className="flex md:hidden items-center justify-between w-full">
+          <Link href="/" className="flex items-center space-x-2 shrink-0">
+            <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-7 w-7 object-cover rounded" />
+            <span className="font-semibold text-xs tracking-tight text-black truncate max-w-[120px]">TutorialsAdda</span>
+          </Link>
+
+          <div className="flex items-center space-x-2.5 shrink-0">
+            <Link href={branches.length > 0 ? `/${branches[0].slug}` : "/search"} className="text-xs font-medium text-[#525252] hover:text-black">
+              Category
+            </Link>
+
+            {!isMounted ? (
+              <div className="h-7 w-14 bg-[#F0F0F0] animate-pulse rounded" />
+            ) : isAuthenticated ? (
+              <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] font-medium border-[#E5E5E5]">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/auth/login">
+                <Button size="sm" className="h-7 px-2.5 bg-black text-white hover:bg-[#262626] text-[11px] font-medium">
+                  Login
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+        {/* ================= END MOBILE SECTION ================= */}
+
+        {/* ================= DESKTOP SECTION ================= */}
+        {/* Desktop Logo */}
+        <div className="hidden md:flex items-center">
+          <Link href="/" className="flex items-center space-x-2.5">
+            <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 object-cover rounded" />
+            <span className="font-semibold text-base tracking-tight text-black">TutorialsAdda</span>
+          </Link>
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
@@ -287,75 +322,7 @@ export function Navbar() {
             </div>
           )}
         </div>
-
-        {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
       </div>
-
-      {/* Mobile Navigation Full-Screen Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-white p-6 flex flex-col justify-between md:hidden">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center space-x-2.5">
-                <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 object-cover rounded" />
-                <span className="font-semibold text-base text-black">TutorialsAdda</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 text-black hover:opacity-75 transition-opacity"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="font-semibold text-[11px] text-[#737373] uppercase tracking-wider px-1">BRANCHES</div>
-              <div className="space-y-1">
-                {branches.map((b) => (
-                  <Link
-                    key={b.slug}
-                    href={`/${b.slug}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2.5 rounded-lg text-sm font-medium text-black hover:bg-[#FAFAFA] transition-colors"
-                  >
-                    {b.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[#E5E5E5] flex flex-col space-y-2 pb-6">
-            {!isMounted ? (
-              <div className="h-10 w-full bg-[#F0F0F0] animate-pulse rounded-md" />
-            ) : isAuthenticated ? (
-              <>
-                <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"} onClick={() => setMobileMenuOpen(false)}>
-                  <button type="button" className="btn-secondary w-full text-xs">Dashboard</button>
-                </Link>
-                <button type="button" onClick={handleLogout} className="w-full py-2.5 text-xs text-red-600 font-medium">
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
-                  <button type="button" className="btn-secondary w-full text-xs">Sign In</button>
-                </Link>
-                <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
-                  <button type="button" className="btn-primary w-full text-xs">Get Started</button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
