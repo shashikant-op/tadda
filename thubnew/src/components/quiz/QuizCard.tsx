@@ -2,26 +2,26 @@
 "use client";
 
 import { useState } from "react";
-import { QuizQuestion } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 interface QuizCardProps {
-  quiz: any;
+  quiz: unknown;
 }
 
 export function QuizCard({ quiz }: QuizCardProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
 
-  const questions = Array.isArray(quiz)
+  const quizRec = quiz as Record<string, unknown> | null;
+  const questionsList = Array.isArray(quiz)
     ? quiz
-    : quiz?.questions && Array.isArray(quiz.questions)
-    ? quiz.questions
+    : quizRec?.questions && Array.isArray(quizRec.questions)
+    ? (quizRec.questions as Record<string, unknown>[])
     : [];
 
-  if (questions.length === 0) return null;
+  if (questionsList.length === 0) return null;
 
   const handleSelect = (questionId: string, optionIndex: number) => {
     if (submitted) return;
@@ -30,9 +30,10 @@ export function QuizCard({ quiz }: QuizCardProps) {
 
   const calculateScore = () => {
     let score = 0;
-    questions.forEach((q: any) => {
-      const qId = q.id || q._id;
-      if (selectedAnswers[qId] === q.correctAnswer || selectedAnswers[qId] === q.options?.indexOf(q.correctAnswer)) {
+    questionsList.forEach((q) => {
+      const qId = (q.id || q._id) as string;
+      const options = q.options as string[] | undefined;
+      if (selectedAnswers[qId] === q.correctAnswer || selectedAnswers[qId] === options?.indexOf(q.correctAnswer as string)) {
         score++;
       }
     });
@@ -45,27 +46,20 @@ export function QuizCard({ quiz }: QuizCardProps) {
         <CardTitle className="text-xl">Knowledge Check Quiz</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {questions.map((q: any, qIndex: number) => {
-          const qId = q.id || q._id || qIndex.toString();
-          const isSelected = selectedAnswers[qId] !== undefined;
-          const correctIdx = typeof q.correctAnswer === "number" ? q.correctAnswer : q.options?.indexOf(q.correctAnswer) ?? 0;
+        {questionsList.map((q, qIndex: number) => {
+          const qId = (q.id || q._id || qIndex.toString()) as string;
+          const options = (q.options as string[]) || [];
+          const correctIdx = typeof q.correctAnswer === "number" ? q.correctAnswer : options?.indexOf(q.correctAnswer as string) ?? 0;
           const isCorrect = selectedAnswers[qId] === correctIdx;
 
           return (
             <div key={qId} className="space-y-3 pb-6 border-b last:border-0">
               <p className="font-medium text-base">
-                {qIndex + 1}. {q.question}
+                {qIndex + 1}. {q.question as string}
               </p>
               <div className="space-y-2">
-                {q.options?.map((option: string, oIndex: number) => {
+                {options.map((option: string, oIndex: number) => {
                   const isChosen = selectedAnswers[qId] === oIndex;
-                  let btnVariant: "outline" | "default" = isChosen ? "default" : "outline";
-
-                  if (submitted) {
-                    if (oIndex === correctIdx) {
-                      btnVariant = "default";
-                    }
-                  }
 
                   return (
                     <button
@@ -89,7 +83,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
               {submitted && (
                 <div className="mt-2 text-xs text-muted-foreground bg-background p-3 rounded border">
                   <span className="font-semibold text-foreground">Explanation: </span>
-                  {q.explanation || "Correct answer explanation."}
+                  {(q.explanation as string) || "Correct answer explanation."}
                 </div>
               )}
             </div>
@@ -99,7 +93,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
       <CardFooter className="flex justify-between items-center bg-card/50 p-6 rounded-b-xl border-t">
         {submitted ? (
           <div className="text-sm font-semibold">
-            Score: {calculateScore()} / {questions.length}
+            Score: {calculateScore()} / {questionsList.length}
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">Select answers for all questions</div>

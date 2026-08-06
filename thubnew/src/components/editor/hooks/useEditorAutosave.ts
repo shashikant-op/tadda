@@ -26,7 +26,7 @@ export function useEditorAutosave({ tutorialId, contentJson, enabled = true }: U
       clearTimeout(timeoutRef.current);
     }
 
-    setStatus("saving");
+    queueMicrotask(() => setStatus("saving"));
 
     timeoutRef.current = setTimeout(async () => {
       try {

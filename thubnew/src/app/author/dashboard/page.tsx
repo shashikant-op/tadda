@@ -14,17 +14,11 @@ import { PlusCircle, BookOpen, Trash2, Edit, CheckCircle2 } from "lucide-react";
 export default function AuthorDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
-  const [tutorials, setTutorials] = useState<any[]>([]);
+  const [tutorials, setTutorials] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token && !isAuthenticated) {
       router.push("/auth/login");
@@ -44,18 +38,19 @@ export default function AuthorDashboardPage() {
       }
     }
     fetchMyCourses();
-  }, [isAuthenticated, router, mounted]);
-
-  if (!mounted) return null;
+  }, [isAuthenticated, router]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this course/tutorial?")) return;
     try {
       await axiosInstance.delete(`/tutorials/${id}`);
-      setTutorials((prev) => prev.filter((t) => (t.id || t._id) !== id));
+      setTutorials((prev) => prev.filter((t) => (t.id || (t as Record<string, unknown>)._id) !== id));
       setMessage("Course deleted successfully.");
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || "Failed to delete course.");
+    } catch (err: unknown) {
+      const errObj = err as Record<string, unknown>;
+      const resp = errObj?.response as Record<string, unknown> | undefined;
+      const data = resp?.data as Record<string, unknown> | undefined;
+      setMessage((data?.message as string) || "Failed to delete course.");
     }
   };
 
@@ -63,10 +58,13 @@ export default function AuthorDashboardPage() {
     try {
       const res = await axiosInstance.patch(`/tutorials/${id}/publish`);
       const updated = res.data.data.tutorial;
-      setTutorials((prev) => prev.map((t) => ((t.id || t._id) === id ? { ...t, status: updated.status } : t)));
+      setTutorials((prev) => prev.map((t) => (((t.id || (t as Record<string, unknown>)._id) === id) ? { ...t, status: updated.status } : t)));
       setMessage("Course status updated successfully.");
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || "Failed to update course status.");
+    } catch (err: unknown) {
+      const errObj = err as Record<string, unknown>;
+      const resp = errObj?.response as Record<string, unknown> | undefined;
+      const data = resp?.data as Record<string, unknown> | undefined;
+      setMessage((data?.message as string) || "Failed to update course status.");
     }
   };
 
@@ -160,19 +158,19 @@ export default function AuthorDashboardPage() {
                   </thead>
                   <tbody className="divide-y">
                     {tutorials.map((tut) => {
-                      const id = tut.id || tut._id;
+                      const id = (tut.id || tut._id) as string;
                       const isPublished = tut.status === "published";
                       return (
                         <tr key={id} className="hover:bg-muted/30">
-                          <td className="py-4 font-medium">{tut.title}</td>
+                          <td className="py-4 font-medium">{tut.title as string}</td>
                           <td className="py-4">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
                               isPublished ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                             }`}>
-                              {tut.status || "draft"}
+                              {(tut.status as string) || "draft"}
                             </span>
                           </td>
-                          <td className="py-4 text-muted-foreground">{tut.views || 0}</td>
+                          <td className="py-4 text-muted-foreground">{(tut.views as number) || 0}</td>
                           <td className="py-4 text-right space-x-2">
                             <Button
                               variant="outline"

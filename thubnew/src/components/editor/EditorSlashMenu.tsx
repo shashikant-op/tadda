@@ -58,7 +58,7 @@ export function EditorSlashMenu({ editor, onOpenImageUpload }: EditorSlashMenuPr
       }
     };
 
-    const handleKeyDown = (view: any, event: KeyboardEvent) => {
+    const handleKeyDown = (_view: unknown, event: KeyboardEvent) => {
       if (!isOpen) return false;
 
       if (event.key === "ArrowDown") {

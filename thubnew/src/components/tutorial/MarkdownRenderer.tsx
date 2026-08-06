@@ -68,7 +68,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         return;
       }
 
-      let html = line
+      const html = line
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary underline font-medium hover:text-primary/80">$1</a>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         .replace(/\*([^*]+)\*/g, '<em>$1</em>');

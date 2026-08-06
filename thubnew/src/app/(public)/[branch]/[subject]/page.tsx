@@ -2,21 +2,18 @@
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { CodeBlock } from "@/components/tutorial/CodeBlock";
-import { VideoEmbed } from "@/components/tutorial/VideoEmbed";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Clock, Bookmark, Share2, ChevronRight, ChevronLeft, CheckCircle, BookOpen } from "lucide-react";
+import { Clock, Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen } from "lucide-react";
 import { Tutorial } from "@/types";
 import { tutorialService } from "@/services/tutorial.service";
 import { bookmarkService } from "@/services/bookmark.service";
 import { progressService } from "@/services/progress.service";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
-import { LoginModal } from "@/components/auth/LoginModal";
 
 interface PageProps {
   params: Promise<{
@@ -26,7 +23,6 @@ interface PageProps {
 }
 
 export default function CoursePlayerPage({ params }: PageProps) {
-  const router = useRouter();
   const resolvedParams = use(params);
   const { branch, subject: subjectSlug } = resolvedParams;
 
@@ -36,18 +32,17 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"bookmark" | "complete" | null>(null);
 
   useEffect(() => {
     async function loadTutorials() {
       try {
         setIsLoading(true);
         const res = await tutorialService.getTutorials(undefined, subjectSlug);
-        const filtered = Array.isArray(res) ? res.filter((t: any) => {
-          const sObj = t.subject;
-          const sSlug = typeof sObj === "object" ? sObj?.slug : sObj;
-          return sSlug === subjectSlug || t.subjectSlug === subjectSlug || t.slug.includes(subjectSlug);
+        const filtered = Array.isArray(res) ? res.filter((t: Tutorial) => {
+          const tRec = t as unknown as Record<string, unknown>;
+          const sObj = tRec.subject;
+          const sSlug = typeof sObj === "object" && sObj !== null ? (sObj as Record<string, unknown>)?.slug : sObj;
+          return sSlug === subjectSlug || tRec.subjectSlug === subjectSlug || (tRec.slug as string)?.includes(subjectSlug);
         }) : [];
         // If filtered has results use them, otherwise take a slice of 20 (one subject's worth)
         const finalTutorials = filtered.length > 0 ? filtered : (Array.isArray(res) ? res.slice(0, 20) : []);
@@ -65,9 +60,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   // Group tutorials by Topic with subtopics
   const topicsMap = new Map<string, { topicName: string; tutorials: { tut: Tutorial; globalIndex: number }[] }>();
-  tutorials.forEach((tut: any, globalIndex: number) => {
-    const topName = typeof tut.topic === "object" ? tut.topic?.name : (tut.topicSlug || "General Topics");
-    const topId = typeof tut.topic === "object" ? (tut.topic?._id || tut.topic?.slug) : (tut.topicSlug || "general");
+  tutorials.forEach((tut: Tutorial, globalIndex: number) => {
+    const tutRec = tut as unknown as Record<string, unknown>;
+    const topicObj = tutRec.topic as Record<string, unknown> | undefined;
+    const topName = typeof tutRec.topic === "object" && topicObj ? (topicObj.name as string) : ((tutRec.topicSlug as string) || "General Topics");
+    const topId = typeof tutRec.topic === "object" && topicObj ? ((topicObj._id || topicObj.slug) as string) : ((tutRec.topicSlug as string) || "general");
     if (!topicsMap.has(topId)) {
       topicsMap.set(topId, { topicName: topName || "Topic Module", tutorials: [] });
     }
@@ -81,51 +78,26 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   const handleBookmark = async () => {
     if (!currentTutorial) return;
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
-      setPendingAction("bookmark");
-      setIsLoginModalOpen(true);
-      return;
-    }
     try {
-      const tId = currentTutorial.id || (currentTutorial as any)._id;
+      const tutRec = currentTutorial as unknown as Record<string, unknown>;
+      const tId = currentTutorial.id || (tutRec._id as string);
       await bookmarkService.addBookmark(tId);
       setIsBookmarked(true);
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        setPendingAction("bookmark");
-        setIsLoginModalOpen(true);
-      }
+    } catch (err: unknown) {
       console.error("Bookmark error", err);
     }
   };
 
   const handleComplete = async () => {
     if (!currentTutorial) return;
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
-      setPendingAction("complete");
-      setIsLoginModalOpen(true);
-      return;
-    }
     try {
-      const tId = currentTutorial.id || (currentTutorial as any)._id;
+      const tutRec = currentTutorial as unknown as Record<string, unknown>;
+      const tId = currentTutorial.id || (tutRec._id as string);
       await progressService.markProgressCompleted(tId);
       setIsCompleted(true);
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        setPendingAction("complete");
-        setIsLoginModalOpen(true);
-      }
+    } catch (err: unknown) {
       console.error("Progress error", err);
     }
-  };
-
-  const handleLoginSuccess = async () => {
-    if (pendingAction === "bookmark") {
-      await handleBookmark();
-    } else if (pendingAction === "complete") {
-      await handleComplete();
-    }
-    setPendingAction(null);
   };
 
   return (
@@ -234,14 +206,18 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   <article className="space-y-6 text-base leading-relaxed">
                     <MarkdownRenderer content={currentTutorial.content} />
 
-                    {(currentTutorial as any).codeBlocks && (currentTutorial as any).codeBlocks.length > 0 && (
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Code Implementation</h3>
-                        {(currentTutorial as any).codeBlocks.map((cb: any, cIdx: number) => (
-                          <CodeBlock key={cIdx} language={cb.language || "javascript"} code={cb.code} />
-                        ))}
-                      </div>
-                    )}
+                    {(() => {
+                      const tutRec = currentTutorial as unknown as Record<string, unknown>;
+                      const codeBlocks = tutRec.codeBlocks as Record<string, unknown>[] | undefined;
+                      return codeBlocks && codeBlocks.length > 0 ? (
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-bold">Code Implementation</h3>
+                          {codeBlocks.map((cb, cIdx: number) => (
+                            <CodeBlock key={cIdx} language={(cb.language as string) || "javascript"} code={(cb.code as string) || ""} />
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
 
                     {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (
                       <div className="space-y-4 pt-6 border-t">

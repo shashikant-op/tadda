@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,35 +14,18 @@ import { useAuthStore } from "@/store/auth.store";
 import { Footer } from "@/components/footer/Footer";
 import { axiosInstance } from "@/lib/axios";
 import { Branch, Subject, Topic } from "@/types";
-import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
-import { Editor } from "@/components/editor/Editor";
 import { GithubMarkdownEditor } from "@/components/editor/GithubMarkdownEditor";
 import {
-  ArrowLeft,
   Save,
-  Eye,
   Plus,
   Video,
   Code,
   FileText,
-  Upload,
   CheckCircle2,
   AlertCircle,
   Copy,
   Check,
-  Search,
   Layers,
-  Bold,
-  Italic,
-  Underline,
-  Heading1,
-  Heading2,
-  Heading3,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  List,
-  Edit3,
-  Palette,
 } from "lucide-react";
 
 function AuthorCreateForm() {
@@ -116,8 +99,8 @@ function AuthorCreateForm() {
             console.error("Failed to load tutorial for editing", err);
           }
         } else if (list.length > 0) {
-          const bId = list[0].id || (list[0] as any)._id;
-          setSelectedBranch(bId);
+          const bId = list[0].id || (list[0] as unknown as Record<string, unknown>)._id;
+          setSelectedBranch(bId as string);
         }
       })
       .catch((err) => console.error("Failed to load branches", err));
@@ -130,8 +113,8 @@ function AuthorCreateForm() {
           const list = Array.isArray(subs) ? subs : [];
           setSubjects(list);
           if (list.length > 0) {
-            const sId = list[0].id || (list[0] as any)._id;
-            setSelectedSubject(sId);
+            const sId = list[0].id || (list[0] as unknown as Record<string, unknown>)._id;
+            setSelectedSubject(sId as string);
           } else {
             setSelectedSubject("");
             setTopics([]);
@@ -148,8 +131,8 @@ function AuthorCreateForm() {
           const list = Array.isArray(tops) ? tops : [];
           setTopics(list);
           if (list.length > 0) {
-            const tId = list[0].id || (list[0] as any)._id;
-            setSelectedTopic(tId);
+            const tId = list[0].id || (list[0] as unknown as Record<string, unknown>)._id;
+            setSelectedTopic(tId as string);
           } else {
             setSelectedTopic("");
           }
@@ -302,11 +285,15 @@ function AuthorCreateForm() {
                 onChange={(e) => setSelectedBranch(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
               >
-                {branches.map((b) => (
-                  <option key={b.id || (b as any)._id} value={b.id || (b as any)._id}>
-                    {b.name}
-                  </option>
-                ))}
+                {branches.map((b) => {
+                  const bRec = b as unknown as Record<string, unknown>;
+                  const bId = b.id || (bRec._id as string);
+                  return (
+                    <option key={bId} value={bId}>
+                      {b.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -322,10 +309,14 @@ function AuthorCreateForm() {
                     try {
                       const res = await axiosInstance.post("/subjects", { name, branch: selectedBranch, description: `Tutorials for ${name}` });
                       const newSub = res.data.data.subject;
+                      const subRec = newSub as Record<string, unknown>;
                       setSubjects((prev) => [...prev, newSub]);
-                      setSelectedSubject(newSub.id || newSub._id);
-                    } catch (err: any) {
-                      alert(err.response?.data?.message || "Failed to create subject");
+                      setSelectedSubject(newSub.id || (subRec._id as string));
+                    } catch (err: unknown) {
+                      const errObj = err as Record<string, unknown>;
+                      const resp = errObj?.response as Record<string, unknown> | undefined;
+                      const data = resp?.data as Record<string, unknown> | undefined;
+                      alert((data?.message as string) || "Failed to create subject");
                     }
                   }}
                   className="text-[10px] text-primary font-bold hover:underline flex items-center"
@@ -341,11 +332,15 @@ function AuthorCreateForm() {
                 {subjects.length === 0 ? (
                   <option value="">No subjects found</option>
                 ) : (
-                  subjects.map((s) => (
-                    <option key={s.id || (s as any)._id} value={s.id || (s as any)._id}>
-                      {s.name}
-                    </option>
-                  ))
+                  subjects.map((s) => {
+                    const sRec = s as unknown as Record<string, unknown>;
+                    const sId = s.id || (sRec._id as string);
+                    return (
+                      <option key={sId} value={sId}>
+                        {s.name}
+                      </option>
+                    );
+                  })
                 )}
               </select>
             </div>
@@ -362,10 +357,14 @@ function AuthorCreateForm() {
                     try {
                       const res = await axiosInstance.post("/topics", { name, subject: selectedSubject, description: `Modules for ${name}` });
                       const newTop = res.data.data.topic;
+                      const topRec = newTop as Record<string, unknown>;
                       setTopics((prev) => [...prev, newTop]);
-                      setSelectedTopic(newTop.id || newTop._id);
-                    } catch (err: any) {
-                      alert(err.response?.data?.message || "Failed to create topic");
+                      setSelectedTopic(newTop.id || (topRec._id as string));
+                    } catch (err: unknown) {
+                      const errObj = err as Record<string, unknown>;
+                      const resp = errObj?.response as Record<string, unknown> | undefined;
+                      const data = resp?.data as Record<string, unknown> | undefined;
+                      alert((data?.message as string) || "Failed to create topic");
                     }
                   }}
                   className="text-[10px] text-primary font-bold hover:underline flex items-center"
@@ -381,11 +380,15 @@ function AuthorCreateForm() {
                 {topics.length === 0 ? (
                   <option value="">No topics found</option>
                 ) : (
-                  topics.map((t) => (
-                    <option key={t.id || (t as any)._id} value={t.id || (t as any)._id}>
-                      {t.name}
-                    </option>
-                  ))
+                  topics.map((t) => {
+                    const tRec = t as unknown as Record<string, unknown>;
+                    const tId = t.id || (tRec._id as string);
+                    return (
+                      <option key={tId} value={tId}>
+                        {t.name}
+                      </option>
+                    );
+                  })
                 )}
               </select>
             </div>

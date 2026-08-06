@@ -2,7 +2,6 @@
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
@@ -26,7 +25,6 @@ interface PageProps {
 }
 
 export default function CatchAllTutorialPage({ params }: PageProps) {
-  const router = useRouter();
   const resolvedParams = use(params);
   const { branch, subject: subjectSlug, slug: slugSegments } = resolvedParams;
   const currentTutorialSlug = slugSegments[slugSegments.length - 1];
@@ -273,13 +271,13 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
               <article className="space-y-6 text-sm sm:text-base leading-relaxed text-[#171717]">
                 <MarkdownRenderer content={currentTutorial.content} />
 
-                {tutAny && Array.isArray((tutAny as Record<string, any>).codeBlocks) && ((tutAny as Record<string, any>).codeBlocks as any[]).length > 0 && (
+                {tutAny && Array.isArray(tutAny.codeBlocks) && (tutAny.codeBlocks as Record<string, unknown>[]).length > 0 && (
                   <div className="space-y-4 pt-4">
                     <h3 className="text-base font-bold text-black flex items-center space-x-2">
                       <Terminal className="h-4 w-4" />
                       <span>Code Example</span>
                     </h3>
-                    {((tutAny as Record<string, any>).codeBlocks as any[]).map((cb: unknown, cIdx: number) => {
+                    {(tutAny.codeBlocks as Record<string, unknown>[]).map((cb: unknown, cIdx: number) => {
                       const cObj = cb as Record<string, unknown>;
                       return (
                         <CodeBlock key={cIdx} language={(cObj.language as string) || "javascript"} code={(cObj.code as string) || ""} />

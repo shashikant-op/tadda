@@ -5,7 +5,6 @@ import { use, useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { TutorialCard } from "@/components/cards/TutorialCard";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Cpu, ChevronRight, AlertCircle } from "lucide-react";
 import { Branch, Subject, Tutorial } from "@/types";
 import { branchService } from "@/services/branch.service";
@@ -35,16 +34,17 @@ export default function DynamicBranchPage({ params }: PageProps) {
         setErrorMessage(null);
         const b = await branchService.getBranchBySlug(branchSlug);
         setBranch(b);
-        const branchId = b?.id || (b as any)?._id;
+        const branchId = b?.id || (b as unknown as Record<string, unknown>)?._id;
         if (branchId) {
-          const subs = await subjectService.getSubjects(branchId);
+          const subs = await subjectService.getSubjects(branchId as string);
           setSubjects(Array.isArray(subs) ? subs : []);
-          const tuts = await tutorialService.getTutorials(branchId);
+          const tuts = await tutorialService.getTutorials(branchId as string);
           setTutorials(Array.isArray(tuts) ? tuts : []);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load branch data", err);
-        setErrorMessage(err.message || "Unable to fetch data from backend. Please ensure backend is running at http://localhost:5005");
+        const errObj = err as Record<string, unknown>;
+        setErrorMessage((errObj?.message as string) || "Unable to fetch data from backend. Please ensure backend is running at http://localhost:5005");
       } finally {
         setIsLoading(false);
       }

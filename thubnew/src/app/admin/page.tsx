@@ -15,10 +15,10 @@ import { useAuthStore } from "@/store/auth.store";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
+  const [usersList, setUsersList] = useState<Record<string, unknown>[]>([]);
   const [newBranchName, setNewBranchName] = useState("");
   const [newBranchDesc, setNewBranchDesc] = useState("");
   const [branchMessage, setBranchMessage] = useState<string | null>(null);
@@ -51,8 +51,11 @@ export default function AdminDashboardPage() {
       setNewBranchName("");
       setNewBranchDesc("");
       adminService.getAnalytics().then((data) => setAnalytics(data)).catch(() => {});
-    } catch (err: any) {
-      setBranchMessage(err.response?.data?.message || "Failed to create branch");
+    } catch (err: unknown) {
+      const errObj = err as Record<string, unknown>;
+      const resp = errObj?.response as Record<string, unknown> | undefined;
+      const data = resp?.data as Record<string, unknown> | undefined;
+      setBranchMessage((data?.message as string) || "Failed to create branch");
     }
   };
 
@@ -77,9 +80,12 @@ export default function AdminDashboardPage() {
           return u;
         })
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to update user role", err);
-      alert(err.response?.data?.message || "Failed to update user role");
+      const errObj = err as Record<string, unknown>;
+      const resp = errObj?.response as Record<string, unknown> | undefined;
+      const data = resp?.data as Record<string, unknown> | undefined;
+      alert((data?.message as string) || "Failed to update user role");
     }
   };
 
@@ -114,7 +120,7 @@ export default function AdminDashboardPage() {
               <BookOpen className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalTutorials ?? 1000}</div>
+              <div className="text-2xl font-bold">{(analytics?.totalTutorials as number) ?? 1000}</div>
               <p className="text-xs text-muted-foreground mt-1">Live from database</p>
             </CardContent>
           </Card>
@@ -124,7 +130,7 @@ export default function AdminDashboardPage() {
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{usersList.length || analytics?.totalUsers || 3}</div>
+              <div className="text-2xl font-bold">{usersList.length || (analytics?.totalUsers as number) || 3}</div>
               <p className="text-xs text-muted-foreground mt-1">Authors & Students</p>
             </CardContent>
           </Card>
@@ -134,7 +140,7 @@ export default function AdminDashboardPage() {
               <BarChart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalBranches ?? 5}</div>
+              <div className="text-2xl font-bold">{(analytics?.totalBranches as number) ?? 5}</div>
               <p className="text-xs text-muted-foreground mt-1">All operational</p>
             </CardContent>
           </Card>
@@ -206,19 +212,19 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="divide-y">
                   {usersList.map((u) => {
-                    const uId = u.id || u._id;
+                    const uId = (u.id || u._id) as string;
                     return (
                       <tr key={uId} className="hover:bg-muted/30">
-                        <td className="py-3 font-medium">{u.name}</td>
-                        <td className="py-3 text-muted-foreground">{u.email}</td>
+                        <td className="py-3 font-medium">{u.name as string}</td>
+                        <td className="py-3 text-muted-foreground">{u.email as string}</td>
                         <td className="py-3">
                           {u.role === "admin" ? (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-red-500/10 text-red-600">
-                              {u.role}
+                              {u.role as string}
                             </span>
                           ) : (
                             <select
-                              value={u.role}
+                              value={u.role as string}
                               onChange={(e) => handleUpdateUserRole(uId, e.target.value)}
                               className={`text-[10px] font-bold px-2 py-1 rounded uppercase border cursor-pointer ${
                                 u.role === "author" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-blue-500/10 text-blue-600 border-blue-500/20"

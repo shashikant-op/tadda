@@ -77,6 +77,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
         {previewUrl ? (
           <div className="space-y-4">
             <div className="relative border rounded-lg overflow-hidden max-h-64 bg-muted/20 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewUrl} alt="Uploaded Preview" className="max-h-60 object-contain" />
               <button
                 onClick={() => setPreviewUrl(null)}
