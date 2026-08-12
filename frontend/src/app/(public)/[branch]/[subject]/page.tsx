@@ -209,19 +209,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     {(() => {
                       const tutRec = currentTutorial as unknown as Record<string, unknown>;
                       const codeBlocks = tutRec.codeBlocks as Record<string, unknown>[] | undefined;
-                      const validCodeBlocks = codeBlocks?.filter(
-                        (cb) => cb && typeof cb.code === "string" && cb.code.trim().length > 0
-                      );
-                      if (!validCodeBlocks || validCodeBlocks.length === 0) return null;
-
-                      return (
+                      return codeBlocks && codeBlocks.length > 0 ? (
                         <div className="space-y-4">
                           <h3 className="text-lg font-bold">Code Implementation</h3>
-                          {validCodeBlocks.map((cb, cIdx: number) => (
+                          {codeBlocks.map((cb, cIdx: number) => (
                             <CodeBlock key={cIdx} language={(cb.language as string) || "javascript"} code={(cb.code as string) || ""} />
                           ))}
                         </div>
-                      );
+                      ) : null;
                     })()}
 
                     {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (

@@ -102,44 +102,21 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
       }
     }
 
-    // 2. Check for HTML paste (Google Docs, Word, Notion, ChatGPT, Docs, etc.)
+    // 2. Check for HTML paste (Google Docs, Word, Notion, ChatGPT, etc.)
     const htmlData = e.clipboardData.getData("text/html");
     if (htmlData) {
       e.preventDefault();
       try {
         const sanitized = DOMPurify.sanitize(htmlData);
-        let markdown = turndownService.turndown(sanitized);
-        markdown = markdown
-          .replace(/\u00A0/g, " ")
-          .replace(/\r\n/g, "\n")
-          .replace(/\n{3,}/g, "\n\n")
-          .trim();
+        const markdown = turndownService.turndown(sanitized);
         insertAtCursor(markdown);
       } catch (err) {
         console.error("Failed to parse pasted rich text", err);
         const textData = e.clipboardData.getData("text/plain");
         if (textData) {
-          const cleanedText = textData
-            .replace(/\u00A0/g, " ")
-            .replace(/\r\n/g, "\n")
-            .replace(/\n{3,}/g, "\n\n")
-            .trim();
-          insertAtCursor(cleanedText);
+          insertAtCursor(textData);
         }
       }
-      return;
-    }
-
-    // 3. Fallback for plain text paste
-    const textData = e.clipboardData.getData("text/plain");
-    if (textData) {
-      e.preventDefault();
-      const cleanedText = textData
-        .replace(/\u00A0/g, " ")
-        .replace(/\r\n/g, "\n")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-      insertAtCursor(cleanedText);
     }
   };
 

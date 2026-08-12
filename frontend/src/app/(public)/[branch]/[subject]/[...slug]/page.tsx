@@ -271,29 +271,20 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
               <article className="space-y-6 text-sm sm:text-base leading-relaxed text-[#171717]">
                 <MarkdownRenderer content={currentTutorial.content} />
 
-                {(() => {
-                  if (!tutAny || !Array.isArray(tutAny.codeBlocks)) return null;
-                  const validCodeBlocks = (tutAny.codeBlocks as Record<string, unknown>[]).filter(
-                    (cb) => cb && typeof cb.code === "string" && cb.code.trim().length > 0
-                  );
-                  if (validCodeBlocks.length === 0) return null;
-
-                  return (
-                    <div className="space-y-4 pt-4">
-                      <h3 className="text-base font-bold text-black flex items-center space-x-2">
-                        <Terminal className="h-4 w-4" />
-                        <span>Code Example</span>
-                      </h3>
-                      {validCodeBlocks.map((cObj, cIdx) => (
-                        <CodeBlock
-                          key={cIdx}
-                          language={(cObj.language as string) || "javascript"}
-                          code={(cObj.code as string) || ""}
-                        />
-                      ))}
-                    </div>
-                  );
-                })()}
+                {tutAny && Array.isArray(tutAny.codeBlocks) && (tutAny.codeBlocks as Record<string, unknown>[]).length > 0 && (
+                  <div className="space-y-4 pt-4">
+                    <h3 className="text-base font-bold text-black flex items-center space-x-2">
+                      <Terminal className="h-4 w-4" />
+                      <span>Code Example</span>
+                    </h3>
+                    {(tutAny.codeBlocks as Record<string, unknown>[]).map((cb: unknown, cIdx: number) => {
+                      const cObj = cb as Record<string, unknown>;
+                      return (
+                        <CodeBlock key={cIdx} language={(cObj.language as string) || "javascript"} code={(cObj.code as string) || ""} />
+                      );
+                    })}
+                  </div>
+                )}
 
                 {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (
                   <div className="space-y-4 pt-8 border-t border-[#E5E5E5]">

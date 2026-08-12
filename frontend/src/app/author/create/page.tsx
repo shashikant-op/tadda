@@ -43,12 +43,12 @@ function AuthorCreateForm() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
 
-  const [lessonTitle, setLessonTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
+  const [lessonTitle, setLessonTitle] = useState("Advanced Engineering Lesson");
+  const [description, setDescription] = useState("Learn core principles and implementation details step by step.");
+  const [content, setContent] = useState("Start writing your course content here... Use Markdown or rich formatting.");
   const [codeLanguage, setCodeLanguage] = useState("typescript");
-  const [codeSnippet, setCodeSnippet] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
+  const [codeSnippet, setCodeSnippet] = useState(`interface CourseModule {\n  id: number;\n  title: string;\n  completed: boolean;\n}`);
+  const [videoUrl, setVideoUrl] = useState("https://www.youtube.com/embed/dQw4w9WgXcQ");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -164,20 +164,16 @@ function AuthorCreateForm() {
         branch: selectedBranch,
         subject: selectedSubject,
         topic: selectedTopic,
-        codeBlocks: codeSnippet.trim()
-          ? [
-              {
-                language: codeLanguage,
-                code: codeSnippet,
-              },
-            ]
-          : [],
-        video: videoUrl.trim()
-          ? {
-              url: videoUrl,
-              platform: "youtube",
-            }
-          : undefined,
+        codeBlocks: [
+          {
+            language: codeLanguage,
+            code: codeSnippet,
+          },
+        ],
+        video: {
+          url: videoUrl,
+          platform: "youtube",
+        },
         status: status,
         seo: {
           title: `${lessonTitle} - Course Tutorial`,
