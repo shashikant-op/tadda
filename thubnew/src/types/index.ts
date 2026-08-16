@@ -14,6 +14,7 @@ export interface Branch {
   slug: string;
   description: string;
   icon?: string;
+  image?: string;
   subjectCount?: number;
 }
 

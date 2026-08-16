@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
@@ -27,6 +28,10 @@ interface PageProps {
 export default function CatchAllTutorialPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { branch, subject: subjectSlug, slug: slugSegments } = resolvedParams;
+
+  if (branch === 'admin') {
+    notFound();
+  }
   const currentTutorialSlug = slugSegments[slugSegments.length - 1];
 
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);

@@ -18,7 +18,7 @@ export function Navbar() {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [activeBranch, setActiveBranch] = useState<Branch | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectsMap, setSubjectsMap] = useState<Record<string, Subject[]>>({});
 
   // Global Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,16 +48,26 @@ export function Navbar() {
     return () => clearTimeout(timer);
   }, [initializeAuth]);
 
+  // Preload subjects for all branches for lightning-fast instant hover
   useEffect(() => {
-    if (activeBranch) {
-      const bId = activeBranch.id || (activeBranch as unknown as Record<string, unknown>)._id;
-      if (bId) {
-        subjectService.getSubjects(bId as string)
-          .then((subs) => setSubjects(Array.isArray(subs) ? subs : []))
-          .catch(() => setSubjects([]));
+    if (branches.length > 0) {
+      if (!activeBranch) {
+        setActiveBranch(branches[0]);
       }
+      branches.forEach((b) => {
+        const bId = b.id || (b as unknown as Record<string, unknown>)._id;
+        if (bId) {
+          subjectService.getSubjects(bId as string)
+            .then((subs) => {
+              setSubjectsMap((prev) => ({ ...prev, [b.slug]: Array.isArray(subs) ? subs : [] }));
+            })
+            .catch(() => {});
+        }
+      });
     }
-  }, [activeBranch]);
+  }, [branches]);
+
+  const currentSubjects = activeBranch ? (subjectsMap[activeBranch.slug] || []) : [];
 
   // Live Search effect with debounce
   useEffect(() => {
@@ -154,7 +164,7 @@ export function Navbar() {
             </button>
 
             {categoriesOpen && (
-              <div className="absolute top-full left-0 w-[680px] rounded-xl border border-[#E5E5E5] bg-white shadow-xl z-50 grid grid-cols-12 overflow-hidden">
+              <div className="absolute top-full left-0 w-[680px] rounded-xl border border-[#E5E5E5] bg-white shadow-xl z-50 grid grid-cols-12 overflow-hidden transition-all duration-200 ease-out animate-in fade-in zoom-in-95">
                 {/* Left Column: Branches list */}
                 <div className="col-span-4 border-r border-[#E5E5E5] bg-[#FAFAFA] p-3 space-y-1 max-h-[380px] overflow-y-auto">
                   <div className="text-[11px] font-semibold text-[#737373] uppercase tracking-wider px-3 py-2">
@@ -166,9 +176,9 @@ export function Navbar() {
                       <div
                         key={branch.id || branch.slug}
                         onMouseEnter={() => setActiveBranch(branch)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-150 ${
                           isSelected
-                            ? "bg-black text-white font-medium"
+                            ? "bg-black text-white font-medium shadow-sm"
                             : "hover:bg-[#F0F0F0] text-[#171717]"
                         }`}
                       >
@@ -186,24 +196,24 @@ export function Navbar() {
                 <div className="col-span-8 p-5 space-y-3 bg-white flex flex-col justify-between max-h-[380px] overflow-y-auto">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-black font-semibold text-xs uppercase tracking-wider border-b border-[#E5E5E5] pb-2">
-                      <span>{activeBranch?.name} Courses ({subjects.length})</span>
+                      <span>{activeBranch?.name} Courses ({currentSubjects.length})</span>
                     </div>
                     <p className="text-xs text-[#737373]">{activeBranch?.description || "Explore technical documentation and engineering guides."}</p>
 
                     <div className="pt-2 space-y-1.5">
-                      {subjects.length === 0 ? (
+                      {currentSubjects.length === 0 ? (
                         <div className="text-xs text-[#737373] py-4">No subjects found for this branch.</div>
                       ) : (
-                        subjects.map((subject) => (
+                        currentSubjects.map((subject) => (
                           <Link
                             key={subject.id || subject.slug}
                             href={`/${activeBranch?.slug}/${subject.slug}`}
                             onClick={() => setCategoriesOpen(false)}
-                            className="block p-2.5 rounded-lg border border-[#E5E5E5] bg-white hover:border-black transition-colors group"
+                            className="block p-2.5 rounded-lg border border-[#E5E5E5] bg-white hover:border-black hover:shadow-sm transition-all group"
                           >
                             <div className="font-medium text-xs text-black group-hover:text-black flex items-center justify-between">
                               <span>{subject.name}</span>
-                              <ChevronRight className="h-3.5 w-3.5 text-[#A3A3A3] group-hover:translate-x-0.5 transition-transform" />
+                              <ChevronRight className="h-3.5 w-3.5 text-[#A3A3A3] group-hover:translate-x-1 transition-transform" />
                             </div>
                             <div className="text-[11px] text-[#737373] mt-0.5 line-clamp-1">{subject.description || "Structured tutorials & reference materials"}</div>
                           </Link>

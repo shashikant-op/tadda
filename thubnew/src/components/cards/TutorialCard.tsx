@@ -16,11 +16,11 @@ export function TutorialCard({ tutorial }: TutorialCardProps) {
   const href = `/${branchSlug}/${subjectSlug}/${tutorial.slug}`;
 
   return (
-    <Link href={href}>
-      <Card className="transition-all hover:border-black cursor-pointer h-full flex flex-col justify-between border-[#E5E5E5] bg-white shadow-2xs rounded-xl p-5">
+    <Link href={href} className="block group">
+      <Card className="transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-xl active:scale-[0.98] hover:border-black cursor-pointer h-full flex flex-col justify-between border-[#E5E5E5] bg-white rounded-xl p-5">
         <CardHeader className="p-0 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#FAFAFA] border border-[#E5E5E5] text-[#525252]">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#FAFAFA] border border-[#E5E5E5] text-[#525252] group-hover:bg-black group-hover:text-white transition-colors">
               {tutorial.difficulty || "Beginner"}
             </span>
             <div className="flex items-center text-xs text-[#737373]">
@@ -28,13 +28,13 @@ export function TutorialCard({ tutorial }: TutorialCardProps) {
               {tutorial.readTime || "10 min read"}
             </div>
           </div>
-          <CardTitle className="text-base font-semibold text-black tracking-tight line-clamp-1">{tutorial.title}</CardTitle>
+          <CardTitle className="text-base font-semibold text-black tracking-tight line-clamp-1 group-hover:text-blue-700 transition-colors">{tutorial.title}</CardTitle>
           <CardDescription className="text-xs text-[#737373] line-clamp-2 leading-relaxed">{tutorial.description}</CardDescription>
         </CardHeader>
         <CardContent className="p-0 pt-4 mt-4 border-t border-[#E5E5E5]">
           <div className="flex items-center justify-between text-xs text-[#737373]">
             <span className="font-medium text-black">{tutorial.author?.name || "Expert Author"}</span>
-            <span className="uppercase tracking-wider text-[10px] font-medium">{subjectSlug}</span>
+            <span className="uppercase tracking-wider text-[10px] font-semibold text-blue-600">{subjectSlug}</span>
           </div>
         </CardContent>
       </Card>

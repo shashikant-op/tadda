@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
@@ -25,6 +26,10 @@ interface PageProps {
 export default function CoursePlayerPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { branch, subject: subjectSlug } = resolvedParams;
+
+  if (branch === 'admin') {
+    notFound();
+  }
 
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);

@@ -12,6 +12,7 @@ import { Shield, BookOpen, Users, BarChart, PlusCircle, Settings, CheckCircle2, 
 import { adminService } from "@/services/admin.service";
 import { branchService } from "@/services/branch.service";
 import { tutorialService } from "@/services/tutorial.service";
+import { uploadService } from "@/services/upload.service";
 import { Branch, Tutorial } from "@/types";
 import { axiosInstance } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -26,6 +27,8 @@ export default function AdminDashboardPage() {
   const [tutorialsList, setTutorialsList] = useState<Record<string, unknown>[]>([]);
   const [newBranchName, setNewBranchName] = useState("");
   const [newBranchDesc, setNewBranchDesc] = useState("");
+  const [newBranchImage, setNewBranchImage] = useState("");
+  const [isUploadingBranchImage, setIsUploadingBranchImage] = useState(false);
   const [branchMessage, setBranchMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,16 +58,38 @@ export default function AdminDashboardPage() {
       .catch(() => setTutorialsList([]));
   }, [isAuthenticated, router]);
 
+  const handleBranchImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingBranchImage(true);
+      const data = await uploadService.uploadImage(file);
+      if (data?.url) {
+        setNewBranchImage(data.url);
+      }
+    } catch (err) {
+      console.error("Failed to upload branch image", err);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setIsUploadingBranchImage(false);
+    }
+  };
+
   const handleCreateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setBranchMessage(null);
-      const res = await axiosInstance.post("/branches", { name: newBranchName, description: newBranchDesc });
+      const res = await axiosInstance.post("/branches", {
+        name: newBranchName,
+        description: newBranchDesc,
+        image: newBranchImage,
+      });
       const created = res.data.data.branch || res.data.data;
       setBranchesList((prev) => [...prev, { ...created, id: created.id || created._id }]);
       setBranchMessage("New engineering branch created successfully!");
       setNewBranchName("");
       setNewBranchDesc("");
+      setNewBranchImage("");
       adminService.getAnalytics().then((data) => setAnalytics(data)).catch(() => {});
     } catch (err: unknown) {
       const errObj = err as Record<string, unknown>;
@@ -229,6 +254,37 @@ export default function AdminDashboardPage() {
                     placeholder="Brief description of the branch..."
                     required
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Background Illustration / Image</label>
+                  <div className="flex items-center space-x-3">
+                    <Input
+                      type="text"
+                      value={newBranchImage}
+                      onChange={(e) => setNewBranchImage(e.target.value)}
+                      placeholder="Image URL or upload file..."
+                    />
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="branch-image-file"
+                      onChange={handleBranchImageUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById("branch-image-file")?.click()}
+                      disabled={isUploadingBranchImage}
+                    >
+                      {isUploadingBranchImage ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+                  {newBranchImage && (
+                    <div className="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border bg-muted">
+                      <img src={newBranchImage} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
                 </div>
                 <Button type="submit">Create Branch</Button>
               </form>

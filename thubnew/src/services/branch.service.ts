@@ -1,22 +1,64 @@
 import { axiosInstance } from "@/lib/axios";
 import { Branch } from "@/types";
 
+const CACHE_KEY = "thub_branches_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const branchService = {
   getBranches: async (): Promise<Branch[]> => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+        if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
+          return JSON.parse(cached);
+        }
+      } catch {}
+    }
+
     const res = await axiosInstance.get("/branches");
     const data = res.data.data.branches || res.data.data;
     const list = Array.isArray(data) ? data : [];
-    return list.map((b: Record<string, unknown>) => ({
+    const branches = list.map((b: Record<string, unknown>) => ({
       ...(b as unknown as Branch),
       id: (b.id || b._id) as string,
     }));
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(branches));
+        localStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
+      } catch {}
+    }
+
+    return branches;
   },
   getBranchBySlug: async (slug: string): Promise<Branch> => {
+    const cacheKey = `${CACHE_KEY}_slug_${slug}`;
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTime = localStorage.getItem(`${cacheKey}_time`);
+        if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
+          return JSON.parse(cached);
+        }
+      } catch {}
+    }
+
     const res = await axiosInstance.get(`/branches/${slug}`);
     const b = res.data.data.branch || res.data.data;
-    return {
+    const branch = {
       ...(b as unknown as Branch),
       id: (b.id || b._id) as string,
     };
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(branch));
+        localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+      } catch {}
+    }
+
+    return branch;
   },
 };

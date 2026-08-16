@@ -1,16 +1,58 @@
 import { axiosInstance } from "@/lib/axios";
 import { Topic } from "@/types";
 
+const CACHE_KEY = "thub_topics_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const topicService = {
   getTopics: async (subjectId?: string): Promise<Topic[]> => {
+    const cacheKey = `${CACHE_KEY}_${subjectId || "all"}`;
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTime = localStorage.getItem(`${cacheKey}_time`);
+        if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
+          return JSON.parse(cached);
+        }
+      } catch {}
+    }
+
     const url = subjectId ? `/topics?subject=${subjectId}` : "/topics";
     const res = await axiosInstance.get(url);
     const data = res.data.data.topics || res.data.data;
-    console.log("🔖 Topics", data, `Total Topics: ${data.length}`);
-    return data;
+    const topics = Array.isArray(data) ? data : [];
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(topics));
+        localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+      } catch {}
+    }
+
+    return topics;
   },
   getTopicBySlug: async (slug: string): Promise<Topic> => {
+    const cacheKey = `${CACHE_KEY}_slug_${slug}`;
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTime = localStorage.getItem(`${cacheKey}_time`);
+        if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
+          return JSON.parse(cached);
+        }
+      } catch {}
+    }
+
     const res = await axiosInstance.get(`/topics/${slug}`);
-    return res.data.data.topic || res.data.data;
+    const topic = res.data.data.topic || res.data.data;
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(topic));
+        localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+      } catch {}
+    }
+
+    return topic;
   },
 };
