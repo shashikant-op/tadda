@@ -71,6 +71,10 @@ const tutorialSchema = new mongoose.Schema({
     enum: ['draft', 'published'],
     default: 'draft'
   },
+  order: {
+    type: Number,
+    default: 0
+  },
   views: {
     type: Number,
     default: 0

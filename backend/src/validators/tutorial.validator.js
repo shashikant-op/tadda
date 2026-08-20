@@ -24,6 +24,7 @@ const createTutorialSchema = Joi.object({
     description: Joi.string().allow(''),
     keywords: Joi.array().items(Joi.string())
   }),
+  order: Joi.number().optional(),
   status: Joi.string().valid('draft', 'published')
 });
 

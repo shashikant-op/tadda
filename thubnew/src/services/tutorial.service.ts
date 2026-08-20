@@ -42,7 +42,10 @@ export const tutorialService = {
         const cached = localStorage.getItem(cacheKey);
         const cachedTime = localStorage.getItem(`${cacheKey}_time`);
         if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
-          return JSON.parse(cached);
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
         }
       } catch {}
     }
@@ -133,6 +136,13 @@ export const tutorialService = {
   createTutorial: async (data: Partial<Tutorial>): Promise<Tutorial> => {
     const res = await axiosInstance.post("/tutorials", data);
     const t = res.data.data.tutorial || res.data.data;
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.includes(CACHE_KEY)) localStorage.removeItem(k);
+        });
+      } catch {}
+    }
     return {
       ...(t as unknown as Tutorial),
       id: (t.id || t._id) as string,
@@ -142,9 +152,27 @@ export const tutorialService = {
   updateTutorial: async (id: string, data: Partial<Tutorial>): Promise<Tutorial> => {
     const res = await axiosInstance.put(`/tutorials/${id}`, data);
     const t = res.data.data.tutorial || res.data.data;
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.includes(CACHE_KEY)) localStorage.removeItem(k);
+        });
+      } catch {}
+    }
     return {
       ...(t as unknown as Tutorial),
       id: (t.id || t._id) as string,
     };
+  },
+
+  reorderTutorials: async (tutorialIds: string[]): Promise<void> => {
+    await axiosInstance.post("/tutorials/reorder", { tutorialIds });
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.includes(CACHE_KEY)) localStorage.removeItem(k);
+        });
+      } catch {}
+    }
   },
 };

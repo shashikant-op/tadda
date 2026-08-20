@@ -57,9 +57,9 @@ const getTutorials = async (req, res, next) => {
     if (status) filter.status = status;
     else filter.status = 'published'; // default public view only published unless specified
 
-    let sortOption = { createdAt: -1 };
-    if (sort === 'oldest') sortOption = { createdAt: 1 };
-    if (sort === 'popular') sortOption = { views: -1 };
+    let sortOption = { order: 1, createdAt: -1 };
+    if (sort === 'oldest') sortOption = { order: 1, createdAt: 1 };
+    if (sort === 'popular') sortOption = { order: 1, views: -1 };
 
     const total = await Tutorial.countDocuments(filter);
     const tutorials = await Tutorial.find(filter)
@@ -219,7 +219,25 @@ const getAuthorTutorials = async (req, res, next) => {
   }
 };
 
+const reorderTutorials = async (req, res, next) => {
+  try {
+    const { tutorialIds } = req.body;
+    if (!Array.isArray(tutorialIds)) {
+      throw new ApiError(400, 'tutorialIds must be an array');
+    }
+
+    const updatePromises = tutorialIds.map((id, index) =>
+      Tutorial.findByIdAndUpdate(id, { order: index })
+    );
+    await Promise.all(updatePromises);
+
+    res.status(200).json(new ApiResponse(200, 'Tutorials reordered successfully', null));
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createTutorial, getTutorials, searchTutorials, getTutorialBySlug,
-  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials
+  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials, reorderTutorials
 };

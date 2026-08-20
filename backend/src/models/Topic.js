@@ -19,6 +19,10 @@ const topicSchema = new mongoose.Schema({
   description: {
     type: String,
     default: ''
+  },
+  order: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

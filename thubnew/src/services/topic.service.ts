@@ -31,6 +31,18 @@ export const topicService = {
 
     return topics;
   },
+
+  reorderTopics: async (topicIds: string[]): Promise<void> => {
+    await axiosInstance.post("/topics/reorder", { topicIds });
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.includes(CACHE_KEY)) localStorage.removeItem(k);
+        });
+      } catch {}
+    }
+  },
+
   getTopicBySlug: async (slug: string): Promise<Topic> => {
     const cacheKey = `${CACHE_KEY}_slug_${slug}`;
     if (typeof window !== "undefined") {

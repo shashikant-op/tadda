@@ -149,7 +149,9 @@ const createTopic = async (req, res, next) => {
 const getTopics = async (req, res, next) => {
   try {
     const filter = req.query.subject ? { subject: req.query.subject } : {};
-    const topics = await Topic.find(filter).populate({ path: 'subject', populate: { path: 'branch' } });
+    const topics = await Topic.find(filter)
+      .populate({ path: 'subject', populate: { path: 'branch' } })
+      .sort({ order: 1, createdAt: 1 });
     res.status(200).json(new ApiResponse(200, 'Topics fetched successfully', { topics }));
   } catch (err) {
     next(err);
@@ -195,8 +197,26 @@ const deleteTopic = async (req, res, next) => {
   }
 };
 
+const reorderTopics = async (req, res, next) => {
+  try {
+    const { topicIds } = req.body;
+    if (!Array.isArray(topicIds)) {
+      throw new ApiError(400, 'topicIds must be an array');
+    }
+
+    const updatePromises = topicIds.map((id, index) =>
+      Topic.findByIdAndUpdate(id, { order: index })
+    );
+    await Promise.all(updatePromises);
+
+    res.status(200).json(new ApiResponse(200, 'Topics reordered successfully', null));
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createBranch, getBranches, getBranchBySlug, updateBranch, deleteBranch,
   createSubject, getSubjects, getSubjectBySlug, updateSubject, deleteSubject,
-  createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic
+  createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic, reorderTopics
 };

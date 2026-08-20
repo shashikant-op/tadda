@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   createBranch, getBranches, getBranchBySlug, updateBranch, deleteBranch,
   createSubject, getSubjects, getSubjectBySlug, updateSubject, deleteSubject,
-  createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic
+  createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic, reorderTopics
 } = require('../controllers/category.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
@@ -23,10 +23,11 @@ router.put('/subjects/:id', protect, authorize('author', 'admin'), updateSubject
 router.delete('/subjects/:id', protect, authorize('admin'), deleteSubject);
 
 // --- Topics Routes ---
+router.post('/topics/reorder', protect, authorize('author', 'admin'), reorderTopics);
 router.post('/topics', protect, authorize('author', 'admin'), createTopic);
 router.get('/topics', getTopics);
 router.get('/topics/:slug', getTopicBySlug);
-router.put('/topics/:id', protect, authorize('admin'), updateTopic);
-router.delete('/topics/:id', protect, authorize('admin'), deleteTopic);
+router.put('/topics/:id', protect, authorize('author', 'admin'), updateTopic);
+router.delete('/topics/:id', protect, authorize('author', 'admin'), deleteTopic);
 
 module.exports = router;
