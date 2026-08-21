@@ -43,6 +43,17 @@ export const topicService = {
     }
   },
 
+  deleteTopic: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/topics/${id}`);
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.includes(CACHE_KEY) || key.includes("thub_tutorials_cache")) localStorage.removeItem(key);
+        });
+      } catch {}
+    }
+  },
+
   getTopicBySlug: async (slug: string): Promise<Topic> => {
     const cacheKey = `${CACHE_KEY}_slug_${slug}`;
     if (typeof window !== "undefined") {

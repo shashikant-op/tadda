@@ -59,7 +59,7 @@ export function BubbleMenu({ editor, onOpenLinkDialog }: BubbleMenuProps) {
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleHighlight().run()}
-        className={`p-1.5 rounded ${editor.isActive("highlight") ? "bg-amber-400 text-black" : "hover:bg-muted"}`}
+        className={`p-1.5 rounded ${editor.isActive("highlight") ? "bg-amber-400 text-[var(--ink)]" : "hover:bg-muted"}`}
         title="Highlight"
       >
         <Highlighter className="h-3.5 w-3.5" />

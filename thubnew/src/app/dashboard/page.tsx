@@ -50,7 +50,7 @@ export default function StudentDashboardPage() {
           <div className="flex items-center space-x-3">
             {(user?.role === "author" || user?.role === "admin") && (
               <Link href="/author/create">
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-[var(--primary-foreground)]">
                   + Create / Edit Course
                 </Button>
               </Link>

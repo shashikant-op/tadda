@@ -1,6 +1,7 @@
 const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
+const Tutorial = require('../models/Tutorial');
 const { generateSlug } = require('../utils/slug');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
@@ -187,11 +188,17 @@ const updateTopic = async (req, res, next) => {
 
 const deleteTopic = async (req, res, next) => {
   try {
-    const topic = await Topic.findByIdAndDelete(req.params.id);
+    const topic = await Topic.findById(req.params.id);
     if (!topic) {
       throw new ApiError(404, 'Topic not found');
     }
-    res.status(200).json(new ApiResponse(200, 'Topic deleted successfully', null));
+
+    const tutorialResult = await Tutorial.deleteMany({ topic: topic._id });
+    await topic.deleteOne();
+
+    res.status(200).json(new ApiResponse(200, 'Topic and lessons deleted successfully', {
+      deletedTutorials: tutorialResult.deletedCount
+    }));
   } catch (err) {
     next(err);
   }

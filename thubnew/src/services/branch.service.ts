@@ -3,6 +3,7 @@ import { Branch } from "@/types";
 
 const CACHE_KEY = "thub_branches_cache";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let branchesRequest: Promise<Branch[]> | null = null;
 
 export const branchService = {
   getBranches: async (): Promise<Branch[]> => {
@@ -16,22 +17,28 @@ export const branchService = {
       } catch {}
     }
 
-    const res = await axiosInstance.get("/branches");
-    const data = res.data.data.branches || res.data.data;
-    const list = Array.isArray(data) ? data : [];
-    const branches = list.map((b: Record<string, unknown>) => ({
-      ...(b as unknown as Branch),
-      id: (b.id || b._id) as string,
-    }));
+    if (branchesRequest) return branchesRequest;
 
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(branches));
-        localStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
-      } catch {}
-    }
+    branchesRequest = axiosInstance.get("/branches").then((res) => {
+      const data = res.data.data.branches || res.data.data;
+      const list = Array.isArray(data) ? data : [];
+      const branches = list.map((b: Record<string, unknown>) => ({
+        ...(b as unknown as Branch),
+        id: (b.id || b._id) as string,
+      }));
 
-    return branches;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(branches));
+          localStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
+        } catch {}
+      }
+      return branches;
+    }).finally(() => {
+      branchesRequest = null;
+    });
+
+    return branchesRequest;
   },
   getBranchBySlug: async (slug: string): Promise<Branch> => {
     const cacheKey = `${CACHE_KEY}_slug_${slug}`;

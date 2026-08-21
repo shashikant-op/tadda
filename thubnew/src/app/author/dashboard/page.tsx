@@ -84,7 +84,7 @@ export default function AuthorDashboardPage() {
             </p>
           </div>
           <Link href="/author/create">
-            <Button className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+            <Button className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-[var(--primary-foreground)] font-semibold">
               <PlusCircle className="h-4 w-4" />
               <span>Create New Course</span>
             </Button>

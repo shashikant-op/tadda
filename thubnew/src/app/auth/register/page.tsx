@@ -45,43 +45,43 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 py-12">
-      <Card className="w-full max-w-md border-[#E5E5E5] bg-white shadow-xl rounded-xl p-2">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--surface)] px-4 py-12">
+      <Card className="w-full max-w-md border-[var(--border)] bg-[var(--surface)] shadow-xl rounded-xl p-2">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-2">
             <Link href="/">
               <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-10 w-10 object-cover rounded-lg" />
             </Link>
           </div>
-          <CardTitle className="text-xl font-bold text-black tracking-tight">Create an account</CardTitle>
-          <CardDescription className="text-xs text-[#737373]">Join TutorialsAdda to access documentation & quizzes</CardDescription>
+          <CardTitle className="text-xl font-bold text-[var(--ink)] tracking-tight">Create an account</CardTitle>
+          <CardDescription className="text-xs text-[var(--body)]">Join TutorialsAdda to access documentation & quizzes</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {error && <div className="p-3 text-xs bg-[#FAFAFA] border border-[#E5E5E5] text-black rounded-lg">{error}</div>}
+            {error && <div className="p-3 text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--ink)] rounded-lg">{error}</div>}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-black">Full Name</label>
-              <Input placeholder="John Doe" className="h-10 text-xs border-[#E5E5E5] focus-visible:ring-0 focus-visible:border-black" {...register("name")} />
+              <label className="text-xs font-medium text-[var(--ink)]">Full Name</label>
+              <Input placeholder="John Doe" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("name")} />
               {errors.name && <p className="text-[11px] text-red-600">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-black">Email</label>
-              <Input type="email" placeholder="john@example.com" className="h-10 text-xs border-[#E5E5E5] focus-visible:ring-0 focus-visible:border-black" {...register("email")} />
+              <label className="text-xs font-medium text-[var(--ink)]">Email</label>
+              <Input type="email" placeholder="john@example.com" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("email")} />
               {errors.email && <p className="text-[11px] text-red-600">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-black">Password</label>
-              <Input type="password" placeholder="••••••••" className="h-10 text-xs border-[#E5E5E5] focus-visible:ring-0 focus-visible:border-black" {...register("password")} />
+              <label className="text-xs font-medium text-[var(--ink)]">Password</label>
+              <Input type="password" placeholder="••••••••" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("password")} />
               {errors.password && <p className="text-[11px] text-red-600">{errors.password.message}</p>}
             </div>
-            <Button type="submit" className="w-full h-10 bg-black text-white hover:bg-[#262626] text-xs font-medium" disabled={isSubmitting}>
+            <Button type="submit" className="w-full h-10 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-xs font-medium" disabled={isSubmitting}>
               {isSubmitting ? "Creating account..." : "Sign up"}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center text-xs text-[#737373] pt-4 pb-4">
+        <CardFooter className="flex justify-center text-xs text-[var(--body)] pt-4 pb-4">
           Already have an account?&nbsp;
-          <Link href="/auth/login" className="text-black font-medium hover:underline">
+          <Link href="/auth/login" className="text-[var(--ink)] font-medium hover:underline">
             Sign in
           </Link>
         </CardFooter>

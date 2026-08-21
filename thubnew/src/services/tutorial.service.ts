@@ -165,6 +165,17 @@ export const tutorialService = {
     };
   },
 
+  deleteTutorial: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/tutorials/${id}`);
+    if (typeof window !== "undefined") {
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.includes(CACHE_KEY)) localStorage.removeItem(key);
+        });
+      } catch {}
+    }
+  },
+
   reorderTutorials: async (tutorialIds: string[]): Promise<void> => {
     await axiosInstance.post("/tutorials/reorder", { tutorialIds });
     if (typeof window !== "undefined") {

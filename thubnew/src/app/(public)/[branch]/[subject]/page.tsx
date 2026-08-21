@@ -1,286 +1,81 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { use, useEffect, useState } from "react";
+import { notFound, useRouter } from "next/navigation";
+import { ArrowLeft, BookOpen } from "lucide-react";
 import { Navbar } from "@/components/navbar/Navbar";
-import { Footer } from "@/components/footer/Footer";
-import { CodeBlock } from "@/components/tutorial/CodeBlock";
-import { QuizCard } from "@/components/quiz/QuizCard";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Clock, Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen } from "lucide-react";
-import { Tutorial } from "@/types";
 import { tutorialService } from "@/services/tutorial.service";
-import { bookmarkService } from "@/services/bookmark.service";
-import { progressService } from "@/services/progress.service";
-import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
+import { subjectService } from "@/services/subject.service";
+import { Tutorial } from "@/types";
 
 interface PageProps {
-  params: Promise<{
-    branch: string;
-    subject: string;
-  }>;
+  params: Promise<{ branch: string; subject: string }>;
 }
 
-export default function CoursePlayerPage({ params }: PageProps) {
-  const resolvedParams = use(params);
-  const { branch, subject: subjectSlug } = resolvedParams;
+function belongsToSubject(tutorial: Tutorial, subjectSlug: string) {
+  const record = tutorial as unknown as Record<string, unknown>;
+  const subject = record.subject;
+  const nestedSlug = typeof subject === "object" && subject !== null
+    ? (subject as Record<string, unknown>).slug
+    : undefined;
 
-  if (branch === 'admin') {
-    notFound();
-  }
+  return nestedSlug === subjectSlug || record.subjectSlug === subjectSlug || subject === subjectSlug;
+}
 
-  const [tutorials, setTutorials] = useState<Tutorial[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
+export default function CourseEndpointPage({ params }: PageProps) {
+  const { branch, subject } = use(params);
+  const router = useRouter();
+  const [status, setStatus] = useState<"loading" | "empty" | "error">("loading");
+
+  if (branch === "admin") notFound();
 
   useEffect(() => {
-    async function loadTutorials() {
+    let active = true;
+
+    async function openCoursePlayer() {
       try {
-        setIsLoading(true);
-        const res = await tutorialService.getTutorials(undefined, subjectSlug);
-        const filtered = Array.isArray(res) ? res.filter((t: Tutorial) => {
-          const tRec = t as unknown as Record<string, unknown>;
-          const sObj = tRec.subject;
-          const sSlug = typeof sObj === "object" && sObj !== null ? (sObj as Record<string, unknown>)?.slug : sObj;
-          return sSlug === subjectSlug || tRec.subjectSlug === subjectSlug || (tRec.slug as string)?.includes(subjectSlug);
-        }) : [];
-        // If filtered has results use them, otherwise take a slice of 20 (one subject's worth)
-        const finalTutorials = filtered.length > 0 ? filtered : (Array.isArray(res) ? res.slice(0, 20) : []);
-        setTutorials(finalTutorials);
-      } catch (err) {
-        console.error("Failed to load course player tutorials", err);
-      } finally {
-        setIsLoading(false);
+        // Public routes use slugs, while the tutorial endpoint filters by subject id.
+        const subjectRecord = await subjectService.getSubjectBySlug(subject);
+        const subjectId = subjectRecord.id || (subjectRecord as unknown as Record<string, unknown>)._id;
+        const response = await tutorialService.getTutorials(undefined, subjectId as string);
+        if (!active) return;
+
+        const tutorials = Array.isArray(response) ? response : [];
+        const firstTutorial = tutorials.find((tutorial) =>
+          belongsToSubject(tutorial, subject) || belongsToSubject(tutorial, subjectId as string)
+        ) || tutorials[0];
+
+        if (!firstTutorial?.slug) {
+          setStatus("empty");
+          return;
+        }
+
+        router.replace(`/${branch}/${subject}/${firstTutorial.slug}`);
+      } catch (error) {
+        console.error("Unable to open course player", error);
+        if (active) setStatus("error");
       }
     }
-    loadTutorials();
-  }, [subjectSlug]);
 
-  const currentTutorial = tutorials[currentIndex];
+    openCoursePlayer();
+    return () => { active = false; };
+  }, [branch, subject, router]);
 
-  // Group tutorials by Topic with subtopics
-  const topicsMap = new Map<string, { topicName: string; tutorials: { tut: Tutorial; globalIndex: number }[] }>();
-  tutorials.forEach((tut: Tutorial, globalIndex: number) => {
-    const tutRec = tut as unknown as Record<string, unknown>;
-    const topicObj = tutRec.topic as Record<string, unknown> | undefined;
-    const topName = typeof tutRec.topic === "object" && topicObj ? (topicObj.name as string) : ((tutRec.topicSlug as string) || "General Topics");
-    const topId = typeof tutRec.topic === "object" && topicObj ? ((topicObj._id || topicObj.slug) as string) : ((tutRec.topicSlug as string) || "general");
-    if (!topicsMap.has(topId)) {
-      topicsMap.set(topId, { topicName: topName || "Topic Module", tutorials: [] });
-    }
-    topicsMap.get(topId)!.tutorials.push({ tut, globalIndex });
-  });
-  const topicsList = Array.from(topicsMap.values());
-
-  const toggleTopic = (topicName: string) => {
-    setOpenTopics((prev) => ({ ...prev, [topicName]: !prev[topicName] }));
-  };
-
-  const handleBookmark = async () => {
-    if (!currentTutorial) return;
-    try {
-      const tutRec = currentTutorial as unknown as Record<string, unknown>;
-      const tId = currentTutorial.id || (tutRec._id as string);
-      await bookmarkService.addBookmark(tId);
-      setIsBookmarked(true);
-    } catch (err: unknown) {
-      console.error("Bookmark error", err);
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!currentTutorial) return;
-    try {
-      const tutRec = currentTutorial as unknown as Record<string, unknown>;
-      const tId = currentTutorial.id || (tutRec._id as string);
-      await progressService.markProgressCompleted(tId);
-      setIsCompleted(true);
-    } catch (err: unknown) {
-      console.error("Progress error", err);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <Navbar />
-
-      <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-xs text-muted-foreground mb-6">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <Link href={`/${branch}`} className="hover:text-primary capitalize">{branch.replace("-", " ")}</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground font-medium capitalize">{subjectSlug.replace(/-/g, " ")}</span>
-        </nav>
-
-        {isLoading ? (
-          <div className="text-center py-20 text-muted-foreground">Loading course player from database...</div>
-        ) : tutorials.length === 0 ? (
-          <Card className="p-12 text-center text-muted-foreground">
-            No tutorials available for this subject yet.
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-            {/* Left Sidebar: Topics and Subtopics Dropdown */}
-            <aside className=" hidden sm:block lg:col-span-1  border rounded-xl bg-card p-4 space-y-4 sticky top-20 shadow-sm max-h-[calc(100vh-120px)] overflow-y-auto">
-              <div className="font-bold text-sm border-b pb-3 uppercase tracking-wider text-muted-foreground flex items-center space-x-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                <span>Course Curriculum ({tutorials.length})</span>
-              </div>
-              <div className="space-y-3">
-                {topicsList.map((group, gIdx) => {
-                  const isOpen = openTopics[group.topicName] ?? true;
-                  return (
-                    <div key={gIdx} className="space-y-1 border-b border-white/10 pb-3 last:border-0">
-                      <button
-                        onClick={() => toggleTopic(group.topicName)}
-                        className="w-full flex items-center justify-between font-bold text-xs uppercase tracking-wider text-foreground py-1 px-1 hover:text-primary transition-colors"
-                      >
-                        <span className="line-clamp-1">{group.topicName}</span>
-                        <ChevronRight className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
-                      </button>
-
-                      {isOpen && (
-                        <div className="space-y-1 pl-2 border-l ml-1 mt-1.5">
-                          {group.tutorials.map(({ tut, globalIndex }) => {
-                            const isActive = globalIndex === currentIndex;
-                            return (
-                              <button
-                                key={tut.id || tut.slug}
-                                onClick={() => setCurrentIndex(globalIndex)}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
-                                  isActive
-                                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                }`}
-                              >
-                                <span className="line-clamp-1">{tut.title}</span>
-                                {isActive && <CheckCircle className="h-3.5 w-3.5 shrink-0 ml-1" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </aside>
-
-            {/* Right Main Course Content */}
-            <main className="lg:col-span-3 space-y-8 bg-card border rounded-xl p-6 sm:p-10 shadow-sm">
-              {currentTutorial && (
-                <>
-                  <div className="space-y-4 border-b pb-6">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-primary/10 text-primary">
-                        {currentTutorial.difficulty || "Beginner"}
-                      </span>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Clock className="mr-1 h-3.5 w-3.5" />
-                        {currentTutorial.readTime || "10 min read"}
-                      </div>
-                    </div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">
-                      {currentTutorial.title}
-                    </h1>
-                    <p className="text-muted-foreground text-sm">
-                      {currentTutorial.description}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-                      <span>Author: {currentTutorial.author?.name || "Expert Instructor"}</span>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" onClick={handleBookmark}>
-                          <Bookmark className={`mr-1.5 h-3.5 w-3.5 ${isBookmarked ? "fill-primary text-primary" : ""}`} />
-                          {isBookmarked ? "Saved" : "Save"}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleComplete}>
-                          <CheckCircle className={`mr-1.5 h-3.5 w-3.5 ${isCompleted ? "text-green-500" : ""}`} />
-                          {isCompleted ? "Completed" : "Mark Complete"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <article className="space-y-6 text-base leading-relaxed">
-                    <MarkdownRenderer content={currentTutorial.content} />
-
-                    {(() => {
-                      const tutRec = currentTutorial as unknown as Record<string, unknown>;
-                      const codeBlocks = tutRec.codeBlocks as Record<string, unknown>[] | undefined;
-                      const validCodeBlocks = codeBlocks?.filter(
-                        (cb) => cb && typeof cb.code === "string" && cb.code.trim().length > 0
-                      );
-                      if (!validCodeBlocks || validCodeBlocks.length === 0) return null;
-
-                      return (
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-bold">Code Implementation</h3>
-                          {validCodeBlocks.map((cb, cIdx: number) => (
-                            <CodeBlock key={cIdx} language={(cb.language as string) || "javascript"} code={(cb.code as string) || ""} />
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                    {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (
-                      <div className="space-y-4 pt-6 border-t">
-                        <h3 className="text-lg font-bold">Knowledge Quiz</h3>
-                        <QuizCard quiz={currentTutorial.quiz} />
-                      </div>
-                    )}
-                  </article>
-
-                  {/* Navigation between course tutorials */}
-<div className="border-t pt-4">
-  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    {/* Progress */}
-    <div className="order-1 text-center text-xs text-muted-foreground sm:order-2">
-      Module <span className="font-medium">{currentIndex + 1}</span> of{" "}
-      <span className="font-medium">{tutorials.length}</span>
-    </div>
-
-    {/* Navigation Buttons */}
-    <div className="order-2 flex items-center justify-between gap-3 sm:order-1 sm:flex-1">
-      <Button
-        variant="outline"
-        onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-        disabled={currentIndex === 0}
-        className="flex-1 sm:flex-none"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Previous
-      </Button>
-
-      <Button
-        onClick={() =>
-          setCurrentIndex((prev) =>
-            Math.min(tutorials.length - 1, prev + 1)
-          )
-        }
-        disabled={currentIndex === tutorials.length - 1}
-        className="flex-1 sm:flex-none"
-      >
-        Next
-        <ChevronRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-</div>
-                </>
-              )}
-            </main>
-          </div>
-        )}
-      </div>
-
-      <Footer />
-    </div>
-  );
+  return <div className="flex min-h-screen flex-col bg-[var(--canvas)] text-[var(--ink)]">
+    <Navbar />
+    <main className="mx-auto grid w-full max-w-[80rem] flex-1 place-items-center px-5 py-16">
+      {status === "loading" ? <div className="w-full max-w-xl text-center" role="status" aria-live="polite">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[var(--soft)] text-[var(--primary)]"><BookOpen className="h-5 w-5" /></span>
+        <p className="mt-5 text-sm font-semibold">Opening course player…</p>
+        <p className="mt-2 text-xs text-[var(--body)]">Preparing the first lesson and curriculum.</p>
+        <div className="mx-auto mt-6 h-1 w-44 overflow-hidden rounded-full bg-[var(--soft)]"><span className="block h-full w-1/2 animate-pulse rounded-full bg-[var(--primary)]" /></div>
+      </div> : <div className="max-w-lg text-center">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[var(--soft)] text-[var(--primary)]"><BookOpen className="h-5 w-5" /></span>
+        <h1 className="mt-5 text-2xl font-semibold tracking-[-.035em]">{status === "empty" ? "Course content is being prepared" : "The course player is unavailable"}</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--body)]">{status === "empty" ? "This course does not have a published lesson yet." : "We could not load this course right now. Please try again shortly."}</p>
+        <Link href={`/${branch}`} className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline"><ArrowLeft className="h-4 w-4" />Back to courses</Link>
+      </div>}
+    </main>
+  </div>;
 }

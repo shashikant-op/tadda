@@ -3,6 +3,7 @@ import { Subject } from "@/types";
 
 const CACHE_KEY = "thub_subjects_cache";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const subjectRequests = new Map<string, Promise<Subject[]>>();
 
 export const subjectService = {
   getSubjects: async (branchId?: string): Promise<Subject[]> => {
@@ -17,23 +18,25 @@ export const subjectService = {
       } catch {}
     }
 
+    const existingRequest = subjectRequests.get(cacheKey);
+    if (existingRequest) return existingRequest;
+
     const url = branchId ? `/subjects?branch=${branchId}` : "/subjects";
-    const res = await axiosInstance.get(url);
-    const data = res.data.data.subjects || res.data.data;
-    const list = Array.isArray(data) ? data : [];
-    const subjects = list.map((s: Record<string, unknown>) => ({
-      ...(s as unknown as Subject),
-      id: (s.id || s._id) as string,
-    }));
+    const request = axiosInstance.get(url).then((res) => {
+      const data = res.data.data.subjects || res.data.data;
+      const list = Array.isArray(data) ? data : [];
+      const subjects = list.map((s: Record<string, unknown>) => ({ ...(s as unknown as Subject), id: (s.id || s._id) as string }));
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(subjects));
+          localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+        } catch {}
+      }
+      return subjects;
+    }).finally(() => subjectRequests.delete(cacheKey));
 
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(subjects));
-        localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
-      } catch {}
-    }
-
-    return subjects;
+    subjectRequests.set(cacheKey, request);
+    return request;
   },
   getSubjectBySlug: async (slug: string): Promise<Subject> => {
     const cacheKey = `${CACHE_KEY}_slug_${slug}`;

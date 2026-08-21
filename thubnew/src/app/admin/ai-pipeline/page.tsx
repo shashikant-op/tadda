@@ -159,7 +159,7 @@ export default function AIPipelineAdminPage() {
 
               {/* Step-by-Step Terminal Logs */}
               {logs.length > 0 && (
-                <div className="rounded-xl bg-black text-emerald-400 font-mono text-xs p-4 space-y-2 max-h-64 overflow-y-auto shadow-inner">
+                <div className="rounded-xl bg-[var(--ink)] text-emerald-400 font-mono text-xs p-4 space-y-2 max-h-64 overflow-y-auto shadow-inner">
                   <div className="text-[10px] uppercase tracking-widest text-emerald-600 border-b border-emerald-900 pb-1 mb-2 flex items-center justify-between">
                     <span>Live Execution Logs</span>
                     <span>{loading ? "RUNNING..." : "COMPLETED"}</span>
@@ -214,16 +214,16 @@ export default function AIPipelineAdminPage() {
                           const courseSlug = courseName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                           return (
                             <div key={idx} className="pl-4 border-l-2 border-primary/30 space-y-2">
-                              <div className="font-semibold text-sm text-black dark:text-white">{topic.title}</div>
+                              <div className="font-semibold text-sm text-[var(--ink)] dark:text-[var(--primary-foreground)]">{topic.title}</div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {topic.subtopics.map((sub: any, sIdx: number) => {
                                   const subSlug = sub.slug || sub.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                                   const editorUrl = `/${branchSlug}/${courseSlug}/${subSlug}`;
                                   return (
                                     <Link key={sIdx} href={editorUrl} target="_blank">
-                                      <div className="p-2.5 rounded-lg border bg-background hover:border-black transition-all flex items-center justify-between group cursor-pointer shadow-2xs">
+                                      <div className="p-2.5 rounded-lg border bg-background hover:border-[var(--ink)] transition-all flex items-center justify-between group cursor-pointer shadow-2xs">
                                         <div className="text-xs font-medium text-foreground group-hover:underline truncate">{sub.title}</div>
-                                        <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-black shrink-0 ml-1.5" />
+                                        <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-[var(--ink)] shrink-0 ml-1.5" />
                                       </div>
                                     </Link>
                                   );

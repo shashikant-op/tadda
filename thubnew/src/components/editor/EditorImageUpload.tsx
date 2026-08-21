@@ -56,7 +56,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ink)]/50 backdrop-blur-xs">
       <div className="bg-card border rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
         <div className="flex items-center justify-between border-b pb-3">
           <h3 className="font-bold text-base flex items-center space-x-2">
@@ -91,7 +91,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
               <Button variant="outline" size="sm" onClick={() => setPreviewUrl(null)}>
                 Upload Different
               </Button>
-              <Button size="sm" onClick={handleConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button size="sm" onClick={handleConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-[var(--primary-foreground)]">
                 Insert Image into Lesson
               </Button>
             </div>

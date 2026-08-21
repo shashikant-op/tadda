@@ -241,7 +241,7 @@ function AuthorCreateForm() {
             </Button>
             <Button
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-700 text-[var(--primary-foreground)] font-semibold"
               onClick={() => handleSaveOrPublish("published")}
               disabled={isSubmitting}
             >

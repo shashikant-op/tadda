@@ -131,11 +131,11 @@ function SearchContent() {
                     key={branch.id || branch.slug}
                     onClick={() => setSelectedBranch(branch)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      isSelected ? "border-black bg-black text-white shadow-md" : "border-[#E5E5E5] bg-white text-black hover:border-black"
+                      isSelected ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--primary-foreground)] shadow-md" : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--ink)]"
                     }`}
                   >
                     <div className="flex items-center space-x-2">
-                      <Cpu className={`h-4 w-4 shrink-0 ${isSelected ? "text-white" : "text-muted-foreground"}`} />
+                      <Cpu className={`h-4 w-4 shrink-0 ${isSelected ? "text-[var(--primary-foreground)]" : "text-muted-foreground"}`} />
                       <span className="font-semibold text-xs tracking-tight">{branch.name}</span>
                     </div>
                     <span className={`text-[10px] mt-3 ${isSelected ? "text-gray-300" : "text-muted-foreground"}`}>
@@ -165,14 +165,14 @@ function SearchContent() {
                   <Link
                     key={subject.id || subject.slug}
                     href={`/${selectedBranch?.slug}/${subject.slug}`}
-                    className="p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-black transition-all flex flex-col justify-between group shadow-2xs"
+                    className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--ink)] transition-all flex flex-col justify-between group shadow-2xs"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-black transition-colors" />
+                        <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-[var(--ink)] transition-colors" />
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                       </div>
-                      <h3 className="font-bold text-xs text-black group-hover:underline">{subject.name}</h3>
+                      <h3 className="font-bold text-xs text-[var(--ink)] group-hover:underline">{subject.name}</h3>
                       <p className="text-[11px] text-muted-foreground line-clamp-2">{subject.description || "Structured tutorials & reference guides."}</p>
                     </div>
                   </Link>

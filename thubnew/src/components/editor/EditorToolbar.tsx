@@ -151,7 +151,7 @@ export function EditorToolbar({ editor, onOpenLinkDialog, onOpenImageUpload }: E
           aria-label="Highlight"
           aria-pressed={editor.isActive("highlight")}
           role="button"
-          className={`p-1.5 rounded transition-colors ${editor.isActive("highlight") ? "bg-amber-400 text-black shadow-xs" : "hover:bg-muted text-foreground"}`}
+          className={`p-1.5 rounded transition-colors ${editor.isActive("highlight") ? "bg-amber-400 text-[var(--ink)] shadow-xs" : "hover:bg-muted text-foreground"}`}
           title="Highlight"
         >
           <Highlighter className="h-3.5 w-3.5" />

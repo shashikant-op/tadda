@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
@@ -10,12 +10,14 @@ import { CodeBlock } from "@/components/tutorial/CodeBlock";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Clock, Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen, Terminal } from "lucide-react";
+import { Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen, Terminal, Trash2, GripVertical } from "lucide-react";
 import { Tutorial } from "@/types";
 import { tutorialService } from "@/services/tutorial.service";
 import { bookmarkService } from "@/services/bookmark.service";
 import { progressService } from "@/services/progress.service";
 import { LoginModal } from "@/components/auth/LoginModal";
+import { useAuthStore } from "@/store/auth.store";
+import { topicService } from "@/services/topic.service";
 
 interface PageProps {
   params: Promise<{
@@ -27,7 +29,19 @@ interface PageProps {
 
 export default function CatchAllTutorialPage({ params }: PageProps) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const { branch, subject: subjectSlug, slug: slugSegments } = resolvedParams;
+  const { initializeAuth, user } = useAuthStore();
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsMounted(true);
+      initializeAuth();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initializeAuth]);
+
+  const canEdit = isMounted && (user?.role === "admin" || user?.role === "author");
 
   if (branch === 'admin') {
     notFound();
@@ -78,14 +92,14 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
     loadData();
   }, [branch, subjectSlug, currentTutorialSlug]);
 
-  const topicsMap = new Map<string, { topicName: string; tutorials: Tutorial[] }>();
+  const topicsMap = new Map<string, { topicId: string; topicName: string; tutorials: Tutorial[] }>();
   tutorials.forEach((tut: unknown) => {
     const tObj = tut as Record<string, unknown>;
     const topicObj = tObj.topic as Record<string, unknown> | undefined;
     const topName = typeof tObj.topic === "object" && topicObj ? (topicObj.name as string) : ((tObj.topicSlug as string) || "General Modules");
     const topId = typeof tObj.topic === "object" && topicObj ? ((topicObj._id || topicObj.slug) as string) : ((tObj.topicSlug as string) || "general");
     if (!topicsMap.has(topId)) {
-      topicsMap.set(topId, { topicName: topName || "Module", tutorials: [] });
+      topicsMap.set(topId, { topicId: topId, topicName: topName || "Module", tutorials: [] });
     }
     topicsMap.get(topId)!.tutorials.push(tObj as unknown as Tutorial);
   });
@@ -161,55 +175,67 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
   const subjectName = subjectObj?.name ? (subjectObj.name as string) : subjectSlug.replace(/-/g, " ");
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[var(--canvas)] text-[var(--ink)] selection:bg-[var(--primary)] selection:text-[var(--primary-foreground)]">
       <Navbar />
 
-      <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+      <div className="site-container flex-1 px-1 py-6 sm:px-4 sm:py-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-[10px] sm:text-xs text-[#737373] mb-8">
-          <Link href="/" className="hover:text-black transition-colors">Home</Link>
-          <ChevronRight className="h-3 w-3 text-[#A3A3A3]" />
-          <Link href={`/${branch}`} className="hover:text-black transition-colors capitalize">{branchName}</Link>
-          <ChevronRight className="h-3 w-3 text-[#A3A3A3]" />
-          <Link href={`/${branch}/${subjectSlug}`} className="hover:text-black transition-colors capitalize">{subjectName}</Link>
-          <ChevronRight className="h-3 w-3 text-[#A3A3A3]" />
-          <span className="text-black font-medium capitalize truncate max-w-[200px] sm:max-w-xs">{currentTutorial?.title || currentTutorialSlug.replace(/-/g, " ")}</span>
+        <nav aria-label="Breadcrumb" className="mb-6 flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap font-mono text-[9px] uppercase tracking-[.08em] text-[var(--body)] sm:mb-10 sm:gap-2 sm:text-[10px]">
+          <Link href="/" className="shrink-0 transition-colors hover:text-[var(--ink)]">Home</Link>
+          <span aria-hidden="true" className="shrink-0">›</span>
+          <Link href={`/${branch}`} className="max-w-[3.5rem] shrink-0 truncate capitalize transition-colors hover:text-[var(--ink)] sm:max-w-[8rem]">{branchName}</Link>
+          <span aria-hidden="true" className="shrink-0">›</span>
+          <Link href={`/${branch}/${subjectSlug}`} className="min-w-0 max-w-[5.5rem] truncate capitalize transition-colors hover:text-[var(--ink)] sm:max-w-[13rem]">{subjectName}</Link>
+          <span aria-hidden="true" className="shrink-0">›</span>
+          <span className="min-w-0 flex-1 truncate font-medium capitalize text-[var(--ink)]">{currentTutorial?.title || currentTutorialSlug.replace(/-/g, " ")}</span>
         </nav>
 
         {isLoading ? (
-          <div className="text-center py-24 text-[#737373] text-sm">Loading documentation...</div>
+          <div className="text-center py-24 text-[var(--body)] text-sm">Loading documentation...</div>
         ) : !currentTutorial ? (
-          <Card className="p-12 text-center text-[#737373] border-[#E5E5E5] bg-white">
+          <Card className="p-12 text-center text-[var(--body)] border-[var(--border)] bg-[var(--surface)]">
             Tutorial not found in database.
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            {/* Left Sidebar: Curriculum Tree (Notion Style) */}
-            <aside className="hidden lg:block lg:col-span-4 border border-[#E5E5E5] rounded-xl bg-[#FAFAFA] p-5 space-y-5 sticky top-20 max-h-[calc(100vh-100px)] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-3">
-                <div className="font-semibold text-xs text-black uppercase tracking-wider flex items-center space-x-2">
-                  <BookOpen className="h-3.5 w-3.5 text-black" />
+          <div className="grid grid-cols-1 items-start lg:grid-cols-12 lg:gap-0">
+            {/* Left Sidebar: Curriculum Tree with Drag-and-Drop Sequencing & Bin */}
+            <aside className="sticky top-20 hidden max-h-[calc(100vh-100px)] space-y-5 overflow-y-auto pr-7 lg:col-span-3 lg:block">
+              <div className="flex items-center justify-between pb-2">
+                <div className="flex items-center space-x-2 font-mono text-[10px] font-semibold uppercase tracking-[.12em] text-[var(--primary)]">
+                  <BookOpen className="h-3.5 w-3.5" />
                   <span>Curriculum ({tutorials.length})</span>
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {topicsList.map((group, gIdx) => {
                   const isOpen = openTopics[group.topicName] ?? true;
                   return (
-                    <div key={gIdx} className="space-y-1.5">
+                    <div
+                      key={gIdx}
+                      className="space-y-2"
+                      draggable={canEdit}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", JSON.stringify({ type: "topic", id: group.topicId }));
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
                       <button
                         onClick={() => toggleTopic(group.topicName)}
-                        className="w-full flex items-center justify-between font-semibold text-xs uppercase tracking-wider text-[#525252] py-1 px-1 hover:text-black transition-colors"
+                        className="flex w-full items-center justify-between px-1 py-1 text-left text-[11px] font-semibold tracking-[.02em] text-[var(--body)] transition-colors hover:text-[var(--ink)]"
                       >
-                        <span className="line-clamp-1">{group.topicName}</span>
+                        <span className="line-clamp-1 flex items-center">
+                          {canEdit && <GripVertical className="h-3 w-3 mr-1 text-gray-400 cursor-grab shrink-0" />}
+                          {group.topicName}
+                        </span>
                         <ChevronRight className={`h-3 w-3 shrink-0 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`} />
                       </button>
 
                       {isOpen && (
-                        <div className="space-y-1 pl-2 border-l border-[#E5E5E5] ml-1 mt-1">
+                        <div className="ml-1 mt-1 space-y-1 pl-2">
                           {group.tutorials.map((tut) => {
                             const tId = tut.id || (tut as unknown as Record<string, unknown>)._id;
-                            const currId = currentTutorial.id || (currentTutorial as unknown as Record<string, unknown>)._id;
+                            const currId = currentTutorial?.id || (currentTutorial as unknown as Record<string, unknown>)._id;
                             const isActive = tId === currId;
                             const tSlug = tut.slug;
                             const tAny = tut as unknown as Record<string, unknown>;
@@ -218,18 +244,59 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                             const bSlug = (bObj?.slug as string) || branch;
                             const sSlug = (sObj?.slug as string) || subjectSlug;
                             return (
-                              <Link
+                              <div
                                 key={tSlug}
-                                href={`/${bSlug}/${sSlug}/${tSlug}`}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
-                                  isActive
-                                    ? "bg-black text-white font-medium"
-                                    : "text-[#525252] hover:bg-white hover:text-black"
-                                }`}
+                                draggable={canEdit}
+                                onDragStart={(e) => {
+                                  e.stopPropagation();
+                                  e.dataTransfer.effectAllowed = "move";
+                                  e.dataTransfer.setData("text/plain", JSON.stringify({ type: "tutorial", id: tId }));
+                                }}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (!canEdit) return;
+                                  let data: { type?: string; id?: string } = {};
+                                  try {
+                                    data = JSON.parse(e.dataTransfer.getData("text/plain") || "{}");
+                                  } catch {
+                                    return;
+                                  }
+                                  if (data.type === "tutorial" && data.id !== tId) {
+                                    const oldIndex = tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === data.id);
+                                    const newIndex = tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === tId);
+                                    if (oldIndex > -1 && newIndex > -1) {
+                                      const updated = [...tutorials];
+                                      const [moved] = updated.splice(oldIndex, 1);
+                                      updated.splice(newIndex, 0, moved);
+                                      setTutorials(updated);
+                                      try {
+                                         const tutorialIds = updated.map(t => t.id || (t as unknown as Record<string, unknown>)._id);
+                                         await tutorialService.reorderTutorials(tutorialIds as string[]);
+                                      } catch {
+                                        setTutorials(tutorials);
+                                        alert("Failed to save the new lesson order");
+                                      }
+                                    }
+                                  }
+                                }}
                               >
-                                <span className="line-clamp-1">{tut.title}</span>
-                                {isActive && <CheckCircle className="h-3 w-3 shrink-0 ml-1 text-white" />}
-                              </Link>
+                                <Link
+                                  href={`/${bSlug}/${sSlug}/${tSlug}`}
+                                  className={`flex w-full items-center justify-between rounded-[8px] border-l-2 px-3 py-2.5 text-left text-xs font-medium transition-colors ${
+                                    isActive
+                                      ? "border-[var(--primary)] bg-[var(--soft)] text-[#173524]"
+                                      : "border-transparent text-[var(--body)] hover:bg-[var(--soft)] hover:text-[var(--ink)]"
+                                  }`}
+                                >
+                                  <span className="line-clamp-1 flex items-center">
+                                    {canEdit && <GripVertical className="h-3 w-3 mr-1 text-gray-400 cursor-grab shrink-0" />}
+                                    {tut.title}
+                                  </span>
+                                  {isActive && <CheckCircle className="ml-1 h-3 w-3 shrink-0 text-[var(--primary)]" />}
+                                </Link>
+                              </div>
                             );
                           })}
                         </div>
@@ -238,42 +305,94 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                   );
                 })}
               </div>
+
+              {/* Bin / Trash Drop Target for Admin and Author */}
+              {canEdit && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    let data: { type?: string; id?: string } = {};
+                    try {
+                      data = JSON.parse(e.dataTransfer.getData("text/plain") || "{}");
+                    } catch {
+                      return;
+                    }
+                    if (!data.id) return;
+                    if (data.type === "tutorial") {
+                      if (confirm("Are you sure you want to delete this tutorial?")) {
+                        try {
+                          await tutorialService.deleteTutorial(data.id);
+                          const remaining = tutorials.filter(t => (t.id || (t as unknown as Record<string, unknown>)._id) !== data.id);
+                          setTutorials(remaining);
+                          const currentId = currentTutorial?.id || (currentTutorial as unknown as Record<string, unknown>)?._id;
+                          if (currentId === data.id) {
+                            const nextTutorial = remaining[Math.min(Math.max(currentIndex, 0), remaining.length - 1)];
+                            router.replace(nextTutorial ? `/${branch}/${subjectSlug}/${nextTutorial.slug}` : `/${branch}/${subjectSlug}`);
+                          }
+                        } catch {
+                          alert("Failed to delete tutorial");
+                        }
+                      }
+                    } else if (data.type === "topic") {
+                      if (confirm("Are you sure you want to delete this topic and its lessons?")) {
+                        try {
+                          await topicService.deleteTopic(data.id);
+                          const remaining = tutorials.filter(t => {
+                            const tAny = t as unknown as Record<string, unknown>;
+                            const topObj = tAny.topic as Record<string, unknown> | undefined;
+                            const topicId = typeof tAny.topic === "object" && topObj
+                              ? ((topObj._id || topObj.id || topObj.slug) as string)
+                              : (tAny.topicSlug as string);
+                            return topicId !== data.id;
+                          });
+                          setTutorials(remaining);
+                          const currentId = currentTutorial?.id || (currentTutorial as unknown as Record<string, unknown>)?._id;
+                          const currentStillExists = remaining.some(t => (t.id || (t as unknown as Record<string, unknown>)._id) === currentId);
+                          if (!currentStillExists) {
+                            router.replace(remaining[0] ? `/${branch}/${subjectSlug}/${remaining[0].slug}` : `/${branch}/${subjectSlug}`);
+                          }
+                        } catch {
+                          alert("Failed to delete topic");
+                        }
+                      }
+                    }
+                  }}
+                  className="mt-6 flex cursor-pointer items-center justify-center space-x-2 rounded-[8px] bg-[#eee4da] p-3 text-center text-xs font-semibold text-[#8a4c3c] transition-colors hover:bg-[#e8d8ca]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Drag here to Delete (Bin)</span>
+                </div>
+              )}
             </aside>
 
             {/* Right Main Course Content (Notion Reading Area) */}
-            <main className="lg:col-span-8 space-y-8 bg-white border border-[#E5E5E5] rounded-xl p-6 sm:p-12">
-              <div className="space-y-4 border-b border-[#E5E5E5] pb-8">
-                <div className="flex items-center space-x-3">
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#FAFAFA] border border-[#E5E5E5] text-[#525252]">
-                    {currentTutorial.difficulty || "Beginner"}
-                  </span>
-                  <div className="flex items-center text-xs text-[#737373]">
-                    <Clock className="mr-1 h-3.5 w-3.5" />
-                    {currentTutorial.readTime || "10 min read"}
-                  </div>
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-black leading-tight">
+            <main className="space-y-7 lg:col-span-9 lg:space-y-10 lg:border-l lg:border-[var(--border)] lg:pl-12 xl:pl-16">
+              <div className="max-w-3xl space-y-4 pb-5 sm:space-y-5 sm:pb-8">
+                <h1 className="text-[2rem] font-semibold leading-[1.02] tracking-[-.05em] text-[var(--ink)] sm:text-5xl">
                   {currentTutorial.title}
                 </h1>
-                <p className="text-[#737373] text-sm leading-relaxed">
+                {currentTutorial.description?.trim().toLowerCase() !== currentTutorial.title.trim().toLowerCase() && <p className="max-w-2xl text-sm leading-6 text-[var(--body)] sm:text-base sm:leading-7">
                   {currentTutorial.description}
-                </p>
-                <div className="flex items-center justify-between text-xs text-[#737373] pt-3 border-t border-[#E5E5E5]">
-                  <span className="font-medium text-black">Author: {currentTutorial.author?.name || "Expert Author"}</span>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs border-[#E5E5E5] hover:border-black" onClick={handleBookmark}>
-                      <Bookmark className={`mr-1.5 h-3.5 w-3.5 ${isBookmarked ? "fill-black text-black" : "text-[#737373]"}`} />
+                </p>}
+                <div className="flex items-center pt-1 text-xs text-[var(--body)]">
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-8 rounded-[8px] px-2.5 text-xs text-[var(--body)] hover:bg-[var(--soft)] hover:text-[var(--ink)]" onClick={handleBookmark}>
+                      <Bookmark className={`mr-1.5 h-3.5 w-3.5 ${isBookmarked ? "fill-black text-[var(--ink)]" : "text-[var(--body)]"}`} />
                       {isBookmarked ? "Saved" : "Save"}
                     </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs border-[#E5E5E5] hover:border-black" onClick={handleComplete}>
-                      <CheckCircle className={`mr-1.5 h-3.5 w-3.5 ${isCompleted ? "text-black" : "text-[#737373]"}`} />
+                    <Button variant="ghost" size="sm" className="h-8 rounded-[8px] px-2.5 text-xs text-[var(--body)] hover:bg-[var(--soft)] hover:text-[var(--ink)]" onClick={handleComplete}>
+                      <CheckCircle className={`mr-1.5 h-3.5 w-3.5 ${isCompleted ? "text-[var(--ink)]" : "text-[var(--body)]"}`} />
                       {isCompleted ? "Completed" : "Mark Complete"}
                     </Button>
                   </div>
                 </div>
               </div>
 
-              <article className="space-y-6 text-sm sm:text-base leading-relaxed text-[#171717]">
+              <article className="max-w-3xl space-y-8 text-[15px] leading-7 text-[var(--ink)] sm:text-base sm:leading-8">
                 <MarkdownRenderer content={currentTutorial.content} />
 
                 {(() => {
@@ -285,7 +404,7 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
 
                   return (
                     <div className="space-y-4 pt-4">
-                      <h3 className="text-base font-bold text-black flex items-center space-x-2">
+                      <h3 className="text-base font-bold text-[var(--ink)] flex items-center space-x-2">
                         <Terminal className="h-4 w-4" />
                         <span>Code Example</span>
                       </h3>
@@ -301,29 +420,29 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                 })()}
 
                 {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (
-                  <div className="space-y-4 pt-8 border-t border-[#E5E5E5]">
-                    <h3 className="text-base font-bold text-black">Knowledge Check</h3>
+                  <div className="space-y-4 pt-8 border-t border-[var(--border)]">
+                    <h3 className="text-base font-bold text-[var(--ink)]">Knowledge Check</h3>
                     <QuizCard quiz={currentTutorial.quiz} />
                   </div>
                 )}
               </article>
 
               {/* Pagination / Navigation between tutorials */}
-              <div className="flex items-center justify-between pt-8 border-t border-[#E5E5E5] mt-12">
+              <div className="flex max-w-3xl items-center justify-between border-t border-[var(--border)] pt-7 mt-14">
                 {currentIndex > 0 ? (
                   <Link href={`/${branch}/${subjectSlug}/${tutorials[currentIndex - 1].slug}`}>
-                    <Button variant="outline" className="h-9 text-xs font-medium border-[#E5E5E5] hover:border-black flex items-center space-x-2">
+                    <Button variant="ghost" className="flex h-9 items-center space-x-2 rounded-[8px] text-xs font-medium hover:bg-[var(--soft)]">
                       <ChevronLeft className="h-4 w-4" />
                       <span>Previous</span>
                     </Button>
                   </Link>
                 ) : <div />}
-                <div className="text-xs text-[#737373]">
+                <div className="text-xs text-[var(--body)]">
                   Module {currentIndex > -1 ? currentIndex + 1 : 1} of {tutorials.length || 1}
                 </div>
                 {currentIndex > -1 && currentIndex < tutorials.length - 1 ? (
                   <Link href={`/${branch}/${subjectSlug}/${tutorials[currentIndex + 1].slug}`}>
-                    <Button className="h-9 text-xs font-medium bg-black text-white hover:bg-[#262626] flex items-center space-x-2">
+                    <Button className="flex h-9 items-center space-x-2 rounded-[8px] bg-[var(--primary)] text-xs font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary)]">
                       <span>Next</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
