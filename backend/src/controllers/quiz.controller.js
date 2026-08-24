@@ -11,6 +11,12 @@ const createQuiz = async (req, res, next) => {
     if (!tut) {
       throw new ApiError(404, 'Tutorial not found');
     }
+    if (req.user.role !== 'admin' && tut.author.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, 'Not authorized to add a quiz to this tutorial');
+    }
+    if (tut.quiz) {
+      throw new ApiError(409, 'This tutorial already has a quiz');
+    }
 
     const quiz = await Quiz.create({ tutorial, questions });
     tut.quiz = quiz._id;
@@ -24,11 +30,16 @@ const createQuiz = async (req, res, next) => {
 
 const getQuiz = async (req, res, next) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quiz = await Quiz.findById(req.params.id).populate('tutorial', 'status');
     if (!quiz) {
       throw new ApiError(404, 'Quiz not found');
     }
-    res.status(200).json(new ApiResponse(200, 'Quiz fetched successfully', { quiz }));
+    if (req.user.role === 'student' && quiz.tutorial?.status !== 'published') {
+      throw new ApiError(404, 'Quiz not found');
+    }
+    const safeQuiz = quiz.toObject();
+    safeQuiz.questions = safeQuiz.questions.map(({ correctAnswer, ...question }) => question);
+    res.status(200).json(new ApiResponse(200, 'Quiz fetched successfully', { quiz: safeQuiz }));
   } catch (err) {
     next(err);
   }
@@ -45,9 +56,16 @@ const submitQuiz = async (req, res, next) => {
     if (!quiz) {
       throw new ApiError(404, 'Quiz not found');
     }
+    const tutorial = await Tutorial.findById(quiz.tutorial).select('status');
+    if (!tutorial || (req.user.role === 'student' && tutorial.status !== 'published')) {
+      throw new ApiError(404, 'Quiz not found');
+    }
 
     let correctCount = 0;
     const totalQuestions = quiz.questions.length;
+    if (totalQuestions === 0) {
+      throw new ApiError(400, 'Quiz has no questions');
+    }
 
     quiz.questions.forEach((q, index) => {
       if (answers[index] && answers[index].trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {

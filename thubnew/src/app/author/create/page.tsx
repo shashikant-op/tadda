@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -208,7 +209,7 @@ function AuthorCreateForm() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             <Link href="/" className="flex items-center space-x-2.5">
-              <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-10 w-10 object-cover rounded-lg" />
+              <Image src="/logopng.png" alt="TutorialsAdda Logo" width={40} height={40} className="h-10 w-10 object-cover rounded-lg" />
               <span className="font-bold text-xl tracking-tight">TutorialsAdda</span>
             </Link>
             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium text-muted-foreground">

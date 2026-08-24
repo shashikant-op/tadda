@@ -1,11 +1,19 @@
 const Bookmark = require('../models/Bookmark');
 const User = require('../models/User');
+const Tutorial = require('../models/Tutorial');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 
 const addBookmark = async (req, res, next) => {
   try {
     const tutorialId = req.params.tutorialId;
+    const tutorial = await Tutorial.findOne({
+      _id: tutorialId,
+      ...(req.user.role === 'student' ? { status: 'published' } : {})
+    }).select('_id');
+    if (!tutorial) {
+      throw new ApiError(404, 'Tutorial not found');
+    }
     
     const existing = await Bookmark.findOne({ user: req.user._id, tutorial: tutorialId });
     if (existing) {

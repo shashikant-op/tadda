@@ -38,9 +38,9 @@ export default function HomePage() {
   }, []);
 
   return <div className="min-h-screen">
-    <a href="#main-content"  className="sr-only  focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-[var(--primary-foreground)]">Skip to content</a>
+
     <Navbar />
-    <main id="main-content">
+    <main id="">
       <section className="relative isolate mx-auto w-full max-w-[80rem] overflow-hidden bg-transparent px-4 lg:grid lg:min-h-[42rem] lg:grid-cols-[.78fr_1.22fr] lg:items-center">
         <div className="relative z-30 flex flex-col justify-start pb-7 pt-9 sm:px-10 sm:pb-12 sm:pt-14 lg:min-h-0 lg:px-14 lg:py-24">
           <p className="eyebrow mb-4 flex items-center gap-3 sm:mb-6 lg:mb-7"><span className=" hidden sm:block h-px w-7 bg-[var(--primary)]" />Learn by building</p>
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[80rem] px-5 pb-12 pt-8 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
+      <section className="mx-auto  w-full max-w-[80rem] px-5 pb-12 pt-8 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
         <div className="mb-9 grid gap-5 sm:mb-12 md:grid-cols-2 md:items-end">
           <div><p className="eyebrow">Choose a discipline</p><h2 className=" hidden sm:block mt-4 max-w-xl text-[2.15rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl">Start wide. Go deep where it matters.</h2></div>
           <p className=" hidden sm:block max-w-md text-sm leading-6 text-[var(--body)] md:justify-self-end">Each branch connects fundamentals, applied examples, quizzes, and longer reference material into one navigable path.</p>

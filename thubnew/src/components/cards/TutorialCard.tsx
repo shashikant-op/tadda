@@ -12,10 +12,10 @@ export function TutorialCard({ tutorial }: TutorialCardProps) {
   const subjectObj = tutAny.subject as Record<string, unknown> | undefined;
   const branchSlug = (typeof tutAny.branch === "object" && branchObj ? branchObj.slug : tutAny.branchSlug) as string | undefined;
   const subjectSlug = (typeof tutAny.subject === "object" && subjectObj ? subjectObj.slug : tutAny.subjectSlug) as string | undefined;
-  const safeBranchSlug = branchSlug || "computer-science";
-  const safeSubjectSlug = subjectSlug || "general";
-  const href = `/${safeBranchSlug}/${safeSubjectSlug}/${tutorial.slug}`;
-  const subjectLabel = safeSubjectSlug.replaceAll("-", " ");
+  const href = branchSlug && subjectSlug
+    ? `/${branchSlug}/${subjectSlug}/${tutorial.slug}`
+    : `/search?q=${encodeURIComponent(tutorial.title)}`;
+  const subjectLabel = (subjectSlug || "tutorial").replaceAll("-", " ");
   const subjectMark = subjectLabel.trim().charAt(0).toUpperCase() || "T";
 
   return (

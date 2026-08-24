@@ -49,15 +49,16 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       const errObj = err as Record<string, unknown>;
       const response = errObj?.response as Record<string, unknown> | undefined;
       const dataResp = response?.data as Record<string, unknown> | undefined;
-      const msg = (dataResp?.message as string) || "Invalid email or password. Try student@tutorialsadda.com (password: password123)";
+      const msg = (dataResp?.message as string) || "Invalid email or password.";
       setError(msg);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--ink)]/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[var(--ink)]/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <Card className="w-full max-w-md relative border-[var(--border)] bg-[var(--surface)] shadow-2xl rounded-xl p-2">
         <button
+          type="button"
           onClick={onClose}
           className="absolute right-4 top-4 rounded-sm text-[var(--body)] hover:text-[var(--ink)] transition-colors"
         >
@@ -71,7 +72,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               TA
             </div>
           </div>
-          <CardTitle className="text-xl font-bold text-[var(--ink)] tracking-tight">Authentication Required</CardTitle>
+          <CardTitle id="login-modal-title" className="text-xl font-bold text-[var(--ink)] tracking-tight">Authentication Required</CardTitle>
           <CardDescription className="text-xs text-[var(--body)]">Sign in to save bookmarks and track learning progress</CardDescription>
         </CardHeader>
 
@@ -80,12 +81,12 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             {error && <div className="p-3 text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--ink)] rounded-lg">{error}</div>}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--ink)]">Email</label>
-              <Input type="email" placeholder="student@tutorialsadda.com" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("email")} />
+              <Input type="email" autoComplete="email" placeholder="you@example.com" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("email")} />
               {errors.email && <p className="text-[11px] text-red-600">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--ink)]">Password</label>
-              <Input type="password" placeholder="••••••••" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("password")} />
+              <Input type="password" autoComplete="current-password" placeholder="••••••••" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("password")} />
               {errors.password && <p className="text-[11px] text-red-600">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full h-10 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-xs font-medium" disabled={isSubmitting}>
@@ -95,7 +96,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         </CardContent>
 
         <CardFooter className="flex justify-center text-xs text-[var(--body)] pb-4">
-          Demo: student@tutorialsadda.com (password123)
+          Use your TutorialsAdda account to continue.
         </CardFooter>
       </Card>
     </div>

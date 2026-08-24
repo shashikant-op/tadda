@@ -40,8 +40,12 @@ export interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correctAnswer: number;
-  explanation: string;
+}
+
+export interface Quiz {
+  id?: string;
+  _id?: string;
+  questions: QuizQuestion[];
 }
 
 export interface Tutorial {
@@ -64,7 +68,7 @@ export interface Tutorial {
     code: string;
   }[];
   videoUrl?: string;
-  quiz?: QuizQuestion[];
+  quiz?: Quiz;
   seoMetadata?: {
     title: string;
     description: string;

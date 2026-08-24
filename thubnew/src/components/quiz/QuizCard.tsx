@@ -1,117 +1,101 @@
-"client"
 "use client";
 
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { quizService } from "@/services/quiz.service";
 
-interface QuizCardProps {
-  quiz: unknown;
+interface QuizQuestion {
+  _id?: string;
+  id?: string;
+  question: string;
+  options: string[];
 }
 
-export function QuizCard({ quiz }: QuizCardProps) {
+interface QuizData {
+  _id?: string;
+  id?: string;
+  questions?: QuizQuestion[];
+}
+
+interface QuizResult {
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
+}
+
+export function QuizCard({ quiz }: { quiz: QuizData }) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [result, setResult] = useState<QuizResult | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+  const quizId = quiz?._id || quiz?.id;
 
-  const quizRec = quiz as Record<string, unknown> | null;
-  const questionsList = Array.isArray(quiz)
-    ? quiz
-    : quizRec?.questions && Array.isArray(quizRec.questions)
-    ? (quizRec.questions as Record<string, unknown>[])
-    : [];
+  if (!quizId || questions.length === 0) return null;
 
-  if (questionsList.length === 0) return null;
+  const submit = async () => {
+    if (Object.keys(selectedAnswers).length !== questions.length) {
+      setError("Answer every question before submitting.");
+      return;
+    }
 
-  const handleSelect = (questionId: string, optionIndex: number) => {
-    if (submitted) return;
-    setSelectedAnswers({ ...selectedAnswers, [questionId]: optionIndex });
-  };
-
-  const calculateScore = () => {
-    let score = 0;
-    questionsList.forEach((q) => {
-      const qId = (q.id || q._id) as string;
-      const options = q.options as string[] | undefined;
-      if (selectedAnswers[qId] === q.correctAnswer || selectedAnswers[qId] === options?.indexOf(q.correctAnswer as string)) {
-        score++;
-      }
-    });
-    return score;
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const answers = questions.map((question, index) => {
+        const questionId = question._id || question.id || String(index);
+        return question.options[selectedAnswers[questionId]];
+      });
+      setResult(await quizService.submitQuiz(quizId, answers));
+    } catch (submissionError) {
+      const responseMessage = (submissionError as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      setError(responseMessage || "Could not submit the quiz. Please sign in and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Card className="my-8 border-primary/20 bg-primary/5">
-      <CardHeader>
-        <CardTitle className="text-xl">Knowledge Check Quiz</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle className="text-xl">Knowledge Check Quiz</CardTitle></CardHeader>
       <CardContent className="space-y-6">
-        {questionsList.map((q, qIndex: number) => {
-          const qId = (q.id || q._id || qIndex.toString()) as string;
-          const options = (q.options as string[]) || [];
-          const correctIdx = typeof q.correctAnswer === "number" ? q.correctAnswer : options?.indexOf(q.correctAnswer as string) ?? 0;
-          const isCorrect = selectedAnswers[qId] === correctIdx;
-
+        {questions.map((question, questionIndex) => {
+          const questionId = question._id || question.id || String(questionIndex);
           return (
-            <div key={qId} className="space-y-3 pb-6 border-b last:border-0">
-              <p className="font-medium text-base">
-                {qIndex + 1}. {q.question as string}
-              </p>
+            <fieldset key={questionId} className="space-y-3 border-b pb-6 last:border-0">
+              <legend className="font-medium text-base">{questionIndex + 1}. {question.question}</legend>
               <div className="space-y-2">
-                {options.map((option: string, oIndex: number) => {
-                  const isChosen = selectedAnswers[qId] === oIndex;
-
-                  return (
-                    <button
-                      key={oIndex}
-                      disabled={submitted}
-                      onClick={() => handleSelect(qId, oIndex)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all flex items-center justify-between ${
-                        isChosen ? "border-primary bg-primary/10 font-medium" : "bg-background hover:bg-muted"
-                      } ${submitted && oIndex === correctIdx ? "border-green-500 bg-green-500/10 text-green-700 font-semibold" : ""} ${
-                        submitted && isChosen && !isCorrect ? "border-red-500 bg-red-500/10 text-red-700" : ""
-                      }`}
-                    >
-                      <span>{option}</span>
-                      {submitted && oIndex === correctIdx && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                      {submitted && isChosen && !isCorrect && <XCircle className="h-4 w-4 text-red-600" />}
-                    </button>
-                  );
-                })}
+                {question.options.map((option, optionIndex) => (
+                  <label key={option} className={`flex min-h-11 cursor-pointer items-center rounded-lg border px-4 py-3 text-sm transition-colors ${selectedAnswers[questionId] === optionIndex ? "border-primary bg-primary/10 font-medium" : "bg-background hover:bg-muted"} ${result ? "cursor-default" : ""}`}>
+                    <input
+                      type="radio"
+                      name={`quiz-${quizId}-${questionId}`}
+                      checked={selectedAnswers[questionId] === optionIndex}
+                      disabled={Boolean(result)}
+                      onChange={() => setSelectedAnswers((answers) => ({ ...answers, [questionId]: optionIndex }))}
+                      className="mr-3"
+                    />
+                    {option}
+                  </label>
+                ))}
               </div>
-
-              {submitted && (
-                <div className="mt-2 text-xs text-muted-foreground bg-background p-3 rounded border">
-                  <span className="font-semibold text-foreground">Explanation: </span>
-                  {(q.explanation as string) || "Correct answer explanation."}
-                </div>
-              )}
-            </div>
+            </fieldset>
           );
         })}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </CardContent>
-      <CardFooter className="flex justify-between items-center bg-card/50 p-6 rounded-b-xl border-t">
-        {submitted ? (
-          <div className="text-sm font-semibold">
-            Score: {calculateScore()} / {questionsList.length}
-          </div>
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t bg-card/50 p-6">
+        {result ? (
+          <p className="text-sm font-semibold" aria-live="polite">Score: {result.correctAnswers} / {result.totalQuestions} ({result.score}%)</p>
         ) : (
-          <div className="text-sm text-muted-foreground">Select answers for all questions</div>
+          <p className="text-sm text-muted-foreground">Answer all {questions.length} questions</p>
         )}
-        {!submitted ? (
-          <Button onClick={() => setSubmitted(true)} disabled={Object.keys(selectedAnswers).length === 0}>
-            Submit Answers
-          </Button>
+        {result ? (
+          <Button variant="outline" onClick={() => { setResult(null); setSelectedAnswers({}); }}>Retake Quiz</Button>
         ) : (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSubmitted(false);
-              setSelectedAnswers({});
-            }}
-          >
-            Retake Quiz
-          </Button>
+          <Button onClick={submit} disabled={isSubmitting}>{isSubmitting ? "Submitting…" : "Submit Answers"}</Button>
         )}
       </CardFooter>
     </Card>

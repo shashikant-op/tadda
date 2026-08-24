@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -13,7 +14,7 @@ import { adminService } from "@/services/admin.service";
 import { branchService } from "@/services/branch.service";
 import { tutorialService } from "@/services/tutorial.service";
 import { uploadService } from "@/services/upload.service";
-import { Branch, Tutorial } from "@/types";
+import { Branch } from "@/types";
 import { axiosInstance } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
   const { isAuthenticated } = useAuthStore();
 
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
+  const [analyticsStatus, setAnalyticsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [usersList, setUsersList] = useState<Record<string, unknown>[]>([]);
   const [branchesList, setBranchesList] = useState<Branch[]>([]);
   const [tutorialsList, setTutorialsList] = useState<Record<string, unknown>[]>([]);
@@ -39,8 +41,14 @@ export default function AdminDashboardPage() {
     }
 
     adminService.getAnalytics()
-      .then((data) => setAnalytics(data))
-      .catch(() => setAnalytics(null));
+      .then((data) => {
+        setAnalytics(data);
+        setAnalyticsStatus("ready");
+      })
+      .catch(() => {
+        setAnalytics(null);
+        setAnalyticsStatus("error");
+      });
 
     adminService.getUsers()
       .then((users) => {
@@ -53,7 +61,7 @@ export default function AdminDashboardPage() {
       .then((b) => setBranchesList(b))
       .catch(() => setBranchesList([]));
 
-    tutorialService.getTutorials()
+    tutorialService.getTutorials(undefined, undefined, true)
       .then((t) => setTutorialsList(t as unknown as Record<string, unknown>[]))
       .catch(() => setTutorialsList([]));
   }, [isAuthenticated, router]);
@@ -90,7 +98,7 @@ export default function AdminDashboardPage() {
       setNewBranchName("");
       setNewBranchDesc("");
       setNewBranchImage("");
-      adminService.getAnalytics().then((data) => setAnalytics(data)).catch(() => {});
+      adminService.getAnalytics().then((data) => { setAnalytics(data); setAnalyticsStatus("ready"); }).catch(() => setAnalyticsStatus("error"));
     } catch (err: unknown) {
       const errObj = err as Record<string, unknown>;
       const resp = errObj?.response as Record<string, unknown> | undefined;
@@ -105,7 +113,7 @@ export default function AdminDashboardPage() {
       await axiosInstance.delete(`/branches/${branchId}`);
       setBranchesList((prev) => prev.filter((b) => b.id !== branchId));
       setBranchMessage("Branch deleted successfully.");
-      adminService.getAnalytics().then((data) => setAnalytics(data)).catch(() => {});
+      adminService.getAnalytics().then((data) => { setAnalytics(data); setAnalyticsStatus("ready"); }).catch(() => setAnalyticsStatus("error"));
     } catch (err: unknown) {
       const errObj = err as Record<string, unknown>;
       const resp = errObj?.response as Record<string, unknown> | undefined;
@@ -119,7 +127,7 @@ export default function AdminDashboardPage() {
     try {
       await axiosInstance.delete(`/tutorials/${tutorialId}`);
       setTutorialsList((prev) => prev.filter((t) => t.id !== tutorialId));
-      adminService.getAnalytics().then((data) => setAnalytics(data)).catch(() => {});
+      adminService.getAnalytics().then((data) => { setAnalytics(data); setAnalyticsStatus("ready"); }).catch(() => setAnalyticsStatus("error"));
     } catch (err) {
       console.error("Failed to delete tutorial", err);
     }
@@ -155,6 +163,13 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const stats = analytics?.stats as Record<string, unknown> | undefined;
+  const metric = (key: string) => analyticsStatus === "loading"
+    ? "—"
+    : typeof stats?.[key] === "number"
+      ? String(stats[key])
+      : "Unavailable";
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
@@ -186,8 +201,8 @@ export default function AdminDashboardPage() {
               <BookOpen className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{(analytics?.totalTutorials as number) ?? 1000}</div>
-              <p className="text-xs text-muted-foreground mt-1">Live from database</p>
+              <div className="text-2xl font-bold">{metric("totalTutorials")}</div>
+              <p className="text-xs text-muted-foreground mt-1">MongoDB tutorial records</p>
             </CardContent>
           </Card>
           <Card>
@@ -196,8 +211,8 @@ export default function AdminDashboardPage() {
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{usersList.length || (analytics?.totalUsers as number) || 3}</div>
-              <p className="text-xs text-muted-foreground mt-1">Authors & Students</p>
+              <div className="text-2xl font-bold">{metric("totalUsers")}</div>
+              <p className="text-xs text-muted-foreground mt-1">All registered roles</p>
             </CardContent>
           </Card>
           <Card>
@@ -206,8 +221,8 @@ export default function AdminDashboardPage() {
               <BarChart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{(analytics?.totalBranches as number) ?? 5}</div>
-              <p className="text-xs text-muted-foreground mt-1">All operational</p>
+              <div className="text-2xl font-bold">{metric("totalBranches")}</div>
+              <p className="text-xs text-muted-foreground mt-1">MongoDB branch records</p>
             </CardContent>
           </Card>
           <Card>
@@ -216,8 +231,12 @@ export default function AdminDashboardPage() {
               <Settings className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">99.9%</div>
-              <p className="text-xs text-muted-foreground mt-1">MongoDB & Vercel OK</p>
+              <div className={`text-2xl font-bold ${analyticsStatus === "error" ? "text-destructive" : ""}`}>
+                {analyticsStatus === "loading" ? "Checking…" : analyticsStatus === "ready" ? "Operational" : "Unavailable"}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {analyticsStatus === "ready" ? "Backend and database responding" : analyticsStatus === "error" ? "Analytics request failed" : "Contacting backend"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -282,7 +301,7 @@ export default function AdminDashboardPage() {
                   </div>
                   {newBranchImage && (
                     <div className="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border bg-muted">
-                      <img src={newBranchImage} alt="Preview" className="w-full h-full object-cover" />
+                      <Image src={newBranchImage} alt="Preview" fill sizes="80px" unoptimized className="object-cover" />
                     </div>
                   )}
                 </div>

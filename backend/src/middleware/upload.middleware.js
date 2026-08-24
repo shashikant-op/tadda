@@ -3,6 +3,15 @@ const ApiError = require('../utils/ApiError');
 
 const storage = multer.memoryStorage();
 
+const hasSupportedImageSignature = (buffer) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const isWebp = buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+    && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  return isJpeg || isPng || isWebp;
+};
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
   const mimetype = allowedTypes.test(file.mimetype);
@@ -21,3 +30,4 @@ const upload = multer({
 });
 
 module.exports = upload;
+module.exports.hasSupportedImageSignature = hasSupportedImageSignature;

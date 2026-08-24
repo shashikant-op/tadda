@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,9 +38,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('tutorialsadda-theme');if(!['quiet','fresh','night'].includes(t)){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'night':'quiet'}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t==='night'?'dark':'light'}catch(e){document.documentElement.dataset.theme='quiet'}})();` }} />
+        <Script id="theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('tutorialsadda-theme');if(!['quiet','fresh','night'].includes(t)){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'night':'quiet'}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t==='night'?'dark':'light'}catch(e){document.documentElement.dataset.theme='quiet'}})();`}</Script>
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}

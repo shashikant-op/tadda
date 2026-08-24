@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import type { CourseGenerationJob, PipelineLog } from "aipipeline";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shield, Sparkles, CheckCircle2, AlertCircle, Loader2, Terminal, ExternalLink, BookOpen, Check } from "lucide-react";
+import { Shield, Sparkles, CheckCircle2, AlertCircle, Loader2, Terminal, ExternalLink, BookOpen } from "lucide-react";
 
 interface LogStep {
   time: string;
@@ -19,7 +20,7 @@ export default function AIPipelineAdminPage() {
   const [courseName, setCourseName] = useState("Compiler Design");
   const [branchName, setBranchName] = useState("Computer Science Engineering");
   const [loading, setLoading] = useState(false);
-  const [jobResult, setJobResult] = useState<any>(null);
+  const [jobResult, setJobResult] = useState<CourseGenerationJob | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogStep[]>([]);
 
@@ -55,22 +56,27 @@ export default function AIPipelineAdminPage() {
         },
         body: JSON.stringify({ courseName, branchName })
       });
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.message || "Failed to execute AI pipeline");
+      const data: unknown = await res.json();
+      if (!data || typeof data !== "object") {
+        throw new Error("Invalid response from pipeline");
       }
-      setJobResult(data.data);
-      if (data.data?.logs && Array.isArray(data.data.logs)) {
-        setLogs(data.data.logs.map((l: any) => ({
+      const response = data as { success?: boolean; message?: string; data?: CourseGenerationJob };
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Failed to execute AI pipeline");
+      }
+      setJobResult(response.data);
+      if (Array.isArray(response.data.logs)) {
+        setLogs(response.data.logs.map((l: PipelineLog) => ({
           time: l.timestamp,
           message: `[${l.level}] [${l.stage}] ${l.message}`,
           status: l.level === "ERROR" ? "error" : "completed"
         })));
       }
       addLog(`✅ Pipeline successfully completed and saved to database!`, "completed");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to execute AI pipeline");
-      addLog(`❌ Pipeline error: ${err.message}`, "error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to execute AI pipeline";
+      setErrorMsg(message);
+      addLog(`❌ Pipeline error: ${message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -208,16 +214,15 @@ export default function AIPipelineAdminPage() {
                       </h3>
                       <div className="p-4 border rounded-lg bg-card space-y-4 max-h-[320px] overflow-y-auto">
                         <div className="font-bold text-base border-b pb-2">{jobResult.result.structure.title}</div>
-                        {jobResult.result.structure.topics.map((topic: any, idx: number) => {
-                          const topicSlug = topic.slug || topic.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                        {jobResult.result.structure.topics.map((topic, idx: number) => {
                           const branchSlug = branchName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                           const courseSlug = courseName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                           return (
                             <div key={idx} className="pl-4 border-l-2 border-primary/30 space-y-2">
                               <div className="font-semibold text-sm text-[var(--ink)] dark:text-[var(--primary-foreground)]">{topic.title}</div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {topic.subtopics.map((sub: any, sIdx: number) => {
-                                  const subSlug = sub.slug || sub.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                                {topic.subtopics.map((sub, sIdx: number) => {
+                                  const subSlug = sub.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                                   const editorUrl = `/${branchSlug}/${courseSlug}/${subSlug}`;
                                   return (
                                     <Link key={sIdx} href={editorUrl} target="_blank">
@@ -239,7 +244,7 @@ export default function AIPipelineAdminPage() {
                   {jobResult.errors && jobResult.errors.length > 0 && (
                     <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm space-y-1">
                       <div className="font-bold">Pipeline Error:</div>
-                      {jobResult.errors.map((e: any, idx: number) => (
+                      {jobResult.errors.map((e, idx: number) => (
                         <div key={idx} className="text-xs">[{e.step}] {e.error}</div>
                       ))}
                     </div>

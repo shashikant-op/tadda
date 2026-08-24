@@ -3,12 +3,18 @@ const Tutorial = require('../models/Tutorial');
 const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
+const Quiz = require('../models/Quiz');
+const Bookmark = require('../models/Bookmark');
+const Progress = require('../models/Progress');
+const User = require('../models/User');
 const { createTutorialSchema, updateTutorialSchema } = require('../validators/tutorial.validator');
 const { createTutorialService, updateTutorialService } = require('../services/tutorial.service');
 const { uploadToCloudinary } = require('../services/upload.service');
 const { getPagination, getPaginationResult } = require('../utils/pagination');
+const { escapeRegex } = require('../utils/regex');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
+const { hasSupportedImageSignature } = require('../middleware/upload.middleware');
 
 const createTutorial = async (req, res, next) => {
   try {
@@ -27,7 +33,7 @@ const createTutorial = async (req, res, next) => {
 const getTutorials = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPagination(req.query);
-    const { branch, subject, topic, status, sort } = req.query;
+    const { branch, subject, topic, sort, status } = req.query;
 
     const filter = {};
     if (branch) {
@@ -42,7 +48,10 @@ const getTutorials = async (req, res, next) => {
       if (mongoose.Types.ObjectId.isValid(subject)) {
         filter.subject = subject;
       } else {
-        const foundSubject = await Subject.findOne({ slug: subject });
+        const foundSubject = await Subject.findOne({
+          slug: subject,
+          ...(filter.branch ? { branch: filter.branch } : {})
+        });
         filter.subject = foundSubject ? foundSubject._id : null;
       }
     }
@@ -54,16 +63,22 @@ const getTutorials = async (req, res, next) => {
         filter.topic = foundTopic ? foundTopic._id : null;
       }
     }
-    if (status) filter.status = status;
-    else filter.status = 'published'; // default public view only published unless specified
+    if (req.user?.role === 'admin' && ['draft', 'published'].includes(status)) {
+      filter.status = status;
+    } else if (req.user?.role !== 'admin' || status !== 'all') {
+      filter.status = 'published';
+    }
 
-    let sortOption = { order: 1, createdAt: -1 };
+    let sortOption = { order: 1, createdAt: 1 };
     if (sort === 'oldest') sortOption = { order: 1, createdAt: 1 };
     if (sort === 'popular') sortOption = { order: 1, views: -1 };
 
     const total = await Tutorial.countDocuments(filter);
     const tutorials = await Tutorial.find(filter)
-      .populate('branch subject topic author', 'name email avatar')
+      .populate([
+        { path: 'branch subject author', select: 'name slug email avatar' },
+        { path: 'topic', select: 'name slug order' }
+      ])
       .sort(sortOption)
       .skip(skip)
       .limit(limit);
@@ -78,11 +93,16 @@ const getTutorials = async (req, res, next) => {
 const searchTutorials = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q) {
+    if (typeof q !== 'string' || !q.trim()) {
       throw new ApiError(400, 'Search query "q" is required');
     }
+    const searchTerm = q.trim();
+    if (searchTerm.length > 100) {
+      throw new ApiError(400, 'Search query must be 100 characters or fewer');
+    }
+    const { page, limit, skip } = getPagination(req.query);
 
-    const regex = new RegExp(q.trim(), 'i');
+    const regex = new RegExp(escapeRegex(searchTerm), 'i');
 
     // Find matching branches, subjects (courses), and topics case-insensitively
     const [matchingBranches, matchingSubjects, matchingTopics] = await Promise.all([
@@ -107,11 +127,15 @@ const searchTutorials = async (req, res, next) => {
       ],
     };
 
+    const total = await Tutorial.countDocuments(query);
     const tutorials = await Tutorial.find(query)
-      .populate('branch subject topic author', 'name email')
-      .sort({ createdAt: -1 });
+      .populate('branch subject topic author', 'name slug email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(new ApiResponse(200, 'Search results fetched successfully', { tutorials }));
+    const pagination = getPaginationResult(total, page, limit, tutorials).pagination;
+    res.status(200).json(new ApiResponse(200, 'Search results fetched successfully', { tutorials, pagination }));
   } catch (err) {
     next(err);
   }
@@ -120,18 +144,31 @@ const searchTutorials = async (req, res, next) => {
 const getTutorialBySlug = async (req, res, next) => {
   try {
     const identifier = req.params.slug;
-    let query = { slug: identifier };
+    const isEditRequest = req.query.edit === 'true';
+    if (isEditRequest && (!req.user || !['author', 'admin'].includes(req.user.role))) {
+      throw new ApiError(401, 'Authentication is required to edit tutorials');
+    }
+
+    let query = { slug: identifier, ...(isEditRequest ? {} : { status: 'published' }) };
     if (mongoose.Types.ObjectId.isValid(identifier)) {
-      query = { $or: [{ _id: identifier }, { slug: identifier }] };
+      query = {
+        $or: [{ _id: identifier }, { slug: identifier }],
+        ...(isEditRequest ? {} : { status: 'published' })
+      };
     }
     const tutorial = await Tutorial.findOne(query)
-      .populate('branch subject topic author quiz relatedTutorials');
+      .populate('branch subject topic author relatedTutorials')
+      .populate({ path: 'quiz', select: '-questions.correctAnswer' });
 
     if (!tutorial) {
       throw new ApiError(404, 'Tutorial not found');
     }
 
-    if (!req.query.edit) {
+    if (isEditRequest && req.user.role !== 'admin' && tutorial.author._id.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, 'Not authorized to edit this tutorial');
+    }
+
+    if (!isEditRequest) {
       tutorial.views += 1;
       await tutorial.save();
     }
@@ -167,6 +204,13 @@ const deleteTutorial = async (req, res, next) => {
       throw new ApiError(403, 'Not authorized to delete this tutorial');
     }
 
+    await Promise.all([
+      Quiz.deleteMany({ tutorial: tutorial._id }),
+      Bookmark.deleteMany({ tutorial: tutorial._id }),
+      Progress.deleteMany({ tutorial: tutorial._id }),
+      User.updateMany({}, { $pull: { savedTutorials: tutorial._id } }),
+      Tutorial.updateMany({ relatedTutorials: tutorial._id }, { $pull: { relatedTutorials: tutorial._id } })
+    ]);
     await tutorial.deleteOne();
     res.status(200).json(new ApiResponse(200, 'Tutorial deleted successfully', null));
   } catch (err) {
@@ -199,6 +243,9 @@ const uploadImage = async (req, res, next) => {
     if (!req.file) {
       throw new ApiError(400, 'Please upload an image file');
     }
+    if (!hasSupportedImageSignature(req.file.buffer)) {
+      throw new ApiError(400, 'Uploaded file content is not a supported image');
+    }
 
     const url = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
     res.status(200).json(new ApiResponse(200, 'Image uploaded successfully', { url }));
@@ -222,16 +269,38 @@ const getAuthorTutorials = async (req, res, next) => {
 const reorderTutorials = async (req, res, next) => {
   try {
     const { tutorialIds } = req.body;
-    if (!Array.isArray(tutorialIds)) {
-      throw new ApiError(400, 'tutorialIds must be an array');
+    if (!Array.isArray(tutorialIds) || tutorialIds.length === 0) {
+      throw new ApiError(400, 'tutorialIds must be a non-empty array');
     }
 
-    const updatePromises = tutorialIds.map((id, index) =>
-      Tutorial.findByIdAndUpdate(id, { order: index })
-    );
-    await Promise.all(updatePromises);
+    if (tutorialIds.some((id) => !mongoose.Types.ObjectId.isValid(id)) || new Set(tutorialIds).size !== tutorialIds.length) {
+      throw new ApiError(400, 'tutorialIds must contain unique valid IDs');
+    }
 
-    res.status(200).json(new ApiResponse(200, 'Tutorials reordered successfully', null));
+    const ownershipFilter = {
+      _id: { $in: tutorialIds },
+      ...(req.user.role === 'admin' ? {} : { author: req.user._id })
+    };
+    const allowedCount = await Tutorial.countDocuments(ownershipFilter);
+    if (allowedCount !== tutorialIds.length) {
+      throw new ApiError(403, 'Not authorized to reorder one or more tutorials');
+    }
+
+    const result = await Tutorial.bulkWrite(tutorialIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id, ...(req.user.role === 'admin' ? {} : { author: req.user._id }) },
+        update: { $set: { order: index } }
+      }
+    })));
+    if (result.matchedCount !== tutorialIds.length) {
+      throw new ApiError(409, 'One or more tutorials changed before the order was saved');
+    }
+
+    const persistedTutorials = await Tutorial.find({ _id: { $in: tutorialIds } })
+      .select('_id title topic order')
+      .sort({ order: 1 });
+
+    res.status(200).json(new ApiResponse(200, 'Tutorials reordered successfully', { tutorials: persistedTutorials }));
   } catch (err) {
     next(err);
   }

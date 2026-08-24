@@ -10,7 +10,7 @@ import { CodeBlock } from "@/components/tutorial/CodeBlock";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen, Terminal, Trash2, GripVertical } from "lucide-react";
+import { Bookmark, ChevronRight, ChevronLeft, CheckCircle, BookOpen, Terminal, Trash2, GripVertical, Pencil, Save as SaveIcon, X, Loader2 } from "lucide-react";
 import { Tutorial } from "@/types";
 import { tutorialService } from "@/services/tutorial.service";
 import { bookmarkService } from "@/services/bookmark.service";
@@ -18,6 +18,7 @@ import { progressService } from "@/services/progress.service";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuthStore } from "@/store/auth.store";
 import { topicService } from "@/services/topic.service";
+import { GithubMarkdownEditor } from "@/components/editor/GithubMarkdownEditor";
 
 interface PageProps {
   params: Promise<{
@@ -54,8 +55,13 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
+  const [topicOrderOverride, setTopicOrderOverride] = useState<string[] | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"bookmark" | "complete" | null>(null);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  const [contentEditError, setContentEditError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -70,14 +76,43 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
 
         if (tutorialData) {
           setCurrentTutorial(tutorialData);
+
+          const tutorialRecord = tutorialData as unknown as Record<string, unknown>;
+          const populatedBranch = tutorialRecord.branch as Record<string, unknown> | undefined;
+          const populatedSubject = tutorialRecord.subject as Record<string, unknown> | undefined;
+          const canonicalBranch = populatedBranch?.slug as string | undefined;
+          const canonicalSubject = populatedSubject?.slug as string | undefined;
+          if (canonicalBranch && canonicalSubject && (canonicalBranch !== branch || canonicalSubject !== subjectSlug)) {
+            router.replace(`/${canonicalBranch}/${canonicalSubject}/${tutorialData.slug}`);
+          }
         }
 
         const tutAny = tutorialData as unknown as Record<string, unknown> | null;
         const subObj = tutAny?.subject as Record<string, unknown> | undefined;
-        const subSlug = subObj?.slug || (tutAny?.subjectSlug as string) || subjectSlug;
-        const res = await tutorialService.getTutorials(undefined, subSlug as string);
-        const list = Array.isArray(res) ? res : [];
+        // Subject slugs are only unique within a branch. Use the populated
+        // subject id so a same-slug course in another branch cannot produce
+        // an empty or incorrect curriculum.
+        const subjectIdentifier = subObj?._id
+          || subObj?.id
+          || subObj?.slug
+          || (tutAny?.subjectSlug as string)
+          || subjectSlug;
+        const res = await tutorialService.getTutorials(undefined, subjectIdentifier as string);
+        const list = Array.isArray(res) ? [...res] : [];
+
+        // The current published tutorial is authoritative. Keep it visible in
+        // the curriculum if a stale cache or temporarily inconsistent list
+        // response omits it.
+        if (tutorialData) {
+          const currentId = tutorialData.id || (tutorialData as unknown as Record<string, unknown>)._id;
+          const isIncluded = list.some((tutorial) => {
+            const tutorialId = tutorial.id || (tutorial as unknown as Record<string, unknown>)._id;
+            return tutorialId === currentId || tutorial.slug === tutorialData?.slug;
+          });
+          if (!isIncluded) list.unshift(tutorialData);
+        }
         setTutorials(list);
+        setTopicOrderOverride(null);
 
         if (!tutorialData && list.length > 0) {
           const found = list.find((t: Tutorial) => t.slug === currentTutorialSlug);
@@ -90,20 +125,32 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
       }
     }
     loadData();
-  }, [branch, subjectSlug, currentTutorialSlug]);
+  }, [branch, subjectSlug, currentTutorialSlug, router]);
 
-  const topicsMap = new Map<string, { topicId: string; topicName: string; tutorials: Tutorial[] }>();
+  const topicsMap = new Map<string, { topicId: string; topicName: string; topicOrder: number; tutorials: Tutorial[] }>();
   tutorials.forEach((tut: unknown) => {
     const tObj = tut as Record<string, unknown>;
     const topicObj = tObj.topic as Record<string, unknown> | undefined;
     const topName = typeof tObj.topic === "object" && topicObj ? (topicObj.name as string) : ((tObj.topicSlug as string) || "General Modules");
     const topId = typeof tObj.topic === "object" && topicObj ? ((topicObj._id || topicObj.slug) as string) : ((tObj.topicSlug as string) || "general");
+    const topicOrder = typeof topicObj?.order === "number" ? topicObj.order : Number.MAX_SAFE_INTEGER;
     if (!topicsMap.has(topId)) {
-      topicsMap.set(topId, { topicId: topId, topicName: topName || "Module", tutorials: [] });
+      topicsMap.set(topId, { topicId: topId, topicName: topName || "Module", topicOrder, tutorials: [] });
     }
     topicsMap.get(topId)!.tutorials.push(tObj as unknown as Tutorial);
   });
-  const topicsList = Array.from(topicsMap.values());
+  const topicsList = Array.from(topicsMap.values()).sort((a, b) => {
+    if (topicOrderOverride) {
+      const aIndex = topicOrderOverride.indexOf(a.topicId);
+      const bIndex = topicOrderOverride.indexOf(b.topicId);
+      if (aIndex !== -1 || bIndex !== -1) {
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      }
+    }
+    return a.topicOrder - b.topicOrder;
+  });
 
   const toggleTopic = (topicName: string) => {
     setOpenTopics((prev) => ({ ...prev, [topicName]: !prev[topicName] }));
@@ -169,6 +216,57 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
   };
 
   const tutAny = currentTutorial as unknown as Record<string, unknown> | null;
+  const tutorialAuthor = tutAny?.author as Record<string, unknown> | undefined;
+  const tutorialAuthorId = (tutorialAuthor?._id || tutorialAuthor?.id) as string | undefined;
+  const currentUserRecord = user as unknown as Record<string, unknown> | null;
+  const currentUserId = (currentUserRecord?.id || currentUserRecord?._id) as string | undefined;
+  const canUpdateContent = canEdit && (user?.role === "admin" || Boolean(currentUserId && tutorialAuthorId && currentUserId === tutorialAuthorId));
+
+  const startContentEditing = () => {
+    if (!currentTutorial || !canUpdateContent) return;
+    setEditedContent(currentTutorial.content);
+    setContentEditError(null);
+    setIsEditingContent(true);
+  };
+
+  const cancelContentEditing = () => {
+    setEditedContent(currentTutorial?.content || "");
+    setContentEditError(null);
+    setIsEditingContent(false);
+  };
+
+  const saveContentChanges = async () => {
+    if (!currentTutorial || !editedContent.trim() || !canUpdateContent) {
+      setContentEditError("Lesson content cannot be empty.");
+      return;
+    }
+
+    const tutorialId = currentTutorial.id || (currentTutorial as unknown as Record<string, unknown>)._id;
+    if (!tutorialId) {
+      setContentEditError("Unable to identify this lesson.");
+      return;
+    }
+
+    try {
+      setIsSavingContent(true);
+      setContentEditError(null);
+      await tutorialService.updateTutorial(tutorialId as string, { content: editedContent });
+      setCurrentTutorial((previous) => previous ? { ...previous, content: editedContent } : previous);
+      setTutorials((previous) => previous.map((tutorial) => {
+        const id = tutorial.id || (tutorial as unknown as Record<string, unknown>)._id;
+        return id === tutorialId ? { ...tutorial, content: editedContent } : tutorial;
+      }));
+      setIsEditingContent(false);
+    } catch (error: unknown) {
+      const errorRecord = error as Record<string, unknown>;
+      const response = errorRecord.response as Record<string, unknown> | undefined;
+      const responseData = response?.data as Record<string, unknown> | undefined;
+      setContentEditError((responseData?.message as string) || "Failed to save lesson content.");
+    } finally {
+      setIsSavingContent(false);
+    }
+  };
+
   const branchObj = tutAny?.branch as Record<string, unknown> | undefined;
   const subjectObj = tutAny?.subject as Record<string, unknown> | undefined;
   const branchName = branchObj?.name ? (branchObj.name as string) : branch.replace(/-/g, " ");
@@ -211,7 +309,9 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                   const isOpen = openTopics[group.topicName] ?? true;
                   return (
                     <div
-                      key={gIdx}
+                      key={group.topicId}
+                      data-topic-id={group.topicId}
+                      data-topic-order={group.topicOrder}
                       className="space-y-2"
                       draggable={canEdit}
                       onDragStart={(e) => {
@@ -219,6 +319,36 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                         e.dataTransfer.setData("text/plain", JSON.stringify({ type: "topic", id: group.topicId }));
                       }}
                       onDragOver={(e) => e.preventDefault()}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        if (!canEdit) return;
+                        let data: { type?: string; id?: string } = {};
+                        try {
+                          data = JSON.parse(e.dataTransfer.getData("text/plain") || "{}");
+                        } catch {
+                          return;
+                        }
+                        if (data.type !== "topic" || data.id === group.topicId) return;
+
+                        const oldIndex = topicsList.findIndex((topic) => topic.topicId === data.id);
+                        if (oldIndex < 0) return;
+                        const reorderedTopics = [...topicsList];
+                        const [moved] = reorderedTopics.splice(oldIndex, 1);
+                        reorderedTopics.splice(gIdx, 0, moved);
+                        const previousOrder = topicOrderOverride;
+                        try {
+                          const topicIds = reorderedTopics.map((topic) => topic.topicId);
+                          setTopicOrderOverride(topicIds);
+                          const persisted = await topicService.reorderTopics(topicIds);
+                          const persistedIds = persisted?.map((topic) => topic.id || (topic as unknown as Record<string, unknown>)._id);
+                          if (persistedIds && persistedIds.join(",") !== topicIds.join(",")) {
+                            throw new Error("The database returned a different topic order");
+                          }
+                        } catch {
+                          setTopicOrderOverride(previousOrder);
+                          alert("Failed to save the new topic order");
+                        }
+                      }}
                     >
                       <button
                         onClick={() => toggleTopic(group.topicName)}
@@ -264,16 +394,21 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                                     return;
                                   }
                                   if (data.type === "tutorial" && data.id !== tId) {
-                                    const oldIndex = tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === data.id);
-                                    const newIndex = tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === tId);
+                                    const oldIndex = group.tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === data.id);
+                                    const newIndex = group.tutorials.findIndex(t => (t.id || (t as unknown as Record<string, unknown>)._id) === tId);
                                     if (oldIndex > -1 && newIndex > -1) {
-                                      const updated = [...tutorials];
-                                      const [moved] = updated.splice(oldIndex, 1);
-                                      updated.splice(newIndex, 0, moved);
+                                      const reorderedGroup = [...group.tutorials];
+                                      const [moved] = reorderedGroup.splice(oldIndex, 1);
+                                      reorderedGroup.splice(newIndex, 0, moved);
+                                      const updated = topicsList.flatMap((topic) => topic.topicId === group.topicId ? reorderedGroup : topic.tutorials);
                                       setTutorials(updated);
                                       try {
-                                         const tutorialIds = updated.map(t => t.id || (t as unknown as Record<string, unknown>)._id);
-                                         await tutorialService.reorderTutorials(tutorialIds as string[]);
+                                         const tutorialIds = reorderedGroup.map(t => t.id || (t as unknown as Record<string, unknown>)._id);
+                                         const persisted = await tutorialService.reorderTutorials(tutorialIds as string[]);
+                                         const persistedIds = persisted?.map(t => t.id || (t as unknown as Record<string, unknown>)._id);
+                                         if (persistedIds && persistedIds.join(",") !== tutorialIds.join(",")) {
+                                           throw new Error("The database returned a different lesson order");
+                                         }
                                       } catch {
                                         setTutorials(tutorials);
                                         alert("Failed to save the new lesson order");
@@ -388,11 +523,27 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                       <CheckCircle className={`mr-1.5 h-3.5 w-3.5 ${isCompleted ? "text-[var(--ink)]" : "text-[var(--body)]"}`} />
                       {isCompleted ? "Completed" : "Mark Complete"}
                     </Button>
+                    {canUpdateContent && !isEditingContent && <Button variant="ghost" size="sm" className="h-8 rounded-[8px] px-2.5 text-xs text-[var(--body)] hover:bg-[var(--soft)] hover:text-[var(--ink)]" onClick={startContentEditing}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Edit Content
+                    </Button>}
                   </div>
                 </div>
               </div>
 
-              <article className="max-w-3xl space-y-8 text-[15px] leading-7 text-[var(--ink)] sm:text-base sm:leading-8">
+              {isEditingContent ? <section className="max-w-3xl space-y-4" aria-label="Edit lesson content">
+                {contentEditError && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{contentEditError}</div>}
+                <GithubMarkdownEditor initialContent={currentTutorial.content} onChange={setEditedContent} placeholder="Write the lesson content in Markdown..." />
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={cancelContentEditing} disabled={isSavingContent}>
+                    <X className="mr-2 h-4 w-4" />Cancel
+                  </Button>
+                  <Button type="button" onClick={saveContentChanges} disabled={isSavingContent || !editedContent.trim()}>
+                    {isSavingContent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SaveIcon className="mr-2 h-4 w-4" />}
+                    {isSavingContent ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </section> : <article className="max-w-3xl space-y-8 text-[15px] leading-7 text-[var(--ink)] sm:text-base sm:leading-8">
                 <MarkdownRenderer content={currentTutorial.content} />
 
                 {(() => {
@@ -419,13 +570,13 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
                   );
                 })()}
 
-                {currentTutorial.quiz && currentTutorial.quiz.length > 0 && (
+                {currentTutorial.quiz && typeof currentTutorial.quiz === "object" && (
                   <div className="space-y-4 pt-8 border-t border-[var(--border)]">
                     <h3 className="text-base font-bold text-[var(--ink)]">Knowledge Check</h3>
                     <QuizCard quiz={currentTutorial.quiz} />
                   </div>
                 )}
-              </article>
+              </article>}
 
               {/* Pagination / Navigation between tutorials */}
               <div className="flex max-w-3xl items-center justify-between border-t border-[var(--border)] pt-7 mt-14">

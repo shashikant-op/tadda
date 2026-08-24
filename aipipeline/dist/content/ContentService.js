@@ -13,7 +13,8 @@ class ContentService {
         }
         const relevantSources = researchPackage.sources.slice(0, 3);
         const context = relevantSources.map(s => `${s.title}: ${s.content}`).join('\n\n');
-        const prompt = `Generate comprehensive, original educational lesson content for the subtopic "${subtopic.title}" under topic "${topicTitle}" for the course "${courseName}". Use the provided research context.\n\nResearch Context:\n${context}`;
+        const prompt = `You are an expert engineering educator, textbook author, and principal software architect. Generate an exhaustive, deeply descriptive, production-level educational lesson for the subtopic "${subtopic.title}" under topic "${topicTitle}" for the course "${courseName}".
+Ensure nothing is left out. Provide rich technical explanations, internal workings, architecture notes, step-by-step algorithms, complete code examples, edge cases, time/space complexity analysis, security/performance considerations, and real-world production usage. Use the provided research context.\n\nResearch Context:\n${context}`;
         const schema = `{ title: string, introduction: string, sections: Array<{ title: string, content: string, examples: string[] }> }`;
         let contentResult;
         try {

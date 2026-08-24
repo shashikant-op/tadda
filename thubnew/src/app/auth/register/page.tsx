@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -50,7 +51,7 @@ export default function RegisterPage() {
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-2">
             <Link href="/">
-              <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-10 w-10 object-cover rounded-lg" />
+              <Image src="/logopng.png" alt="TutorialsAdda Logo" width={40} height={40} className="h-10 w-10 object-cover rounded-lg" />
             </Link>
           </div>
           <CardTitle className="text-xl font-bold text-[var(--ink)] tracking-tight">Create an account</CardTitle>
@@ -61,17 +62,17 @@ export default function RegisterPage() {
             {error && <div className="p-3 text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--ink)] rounded-lg">{error}</div>}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--ink)]">Full Name</label>
-              <Input placeholder="John Doe" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("name")} />
+              <Input autoComplete="name" placeholder="John Doe" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("name")} />
               {errors.name && <p className="text-[11px] text-red-600">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--ink)]">Email</label>
-              <Input type="email" placeholder="john@example.com" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("email")} />
+              <Input type="email" autoComplete="email" placeholder="john@example.com" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("email")} />
               {errors.email && <p className="text-[11px] text-red-600">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--ink)]">Password</label>
-              <Input type="password" placeholder="••••••••" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("password")} />
+              <Input type="password" autoComplete="new-password" placeholder="••••••••" className="h-10 text-xs border-[var(--border)] focus-visible:ring-0 focus-visible:border-[var(--ink)]" {...register("password")} />
               {errors.password && <p className="text-[11px] text-red-600">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full h-10 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-xs font-medium" disabled={isSubmitting}>

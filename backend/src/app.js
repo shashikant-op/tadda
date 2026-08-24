@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
+const { randomUUID } = require('crypto');
 
 const { errorHandler, notFound } = require('./middleware/error.middleware');
 
@@ -39,18 +39,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use((req, res, next) => {
+  req.id = req.get('x-request-id') || randomUUID();
+  res.set('x-request-id', req.id);
+  next();
+});
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
-
-// Rate limiting on auth
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
-  message: { success: false, message: 'Too many requests, please try again later' }
-});
-app.use('/api/v1/auth', authLimiter);
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
@@ -65,6 +62,10 @@ app.use('/api/v1/admin', adminRoutes);
 // Root health check
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'TutorialsAdda API is running successfully' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ success: true, status: 'ok', requestId: req.id });
 });
 
 // Error handling

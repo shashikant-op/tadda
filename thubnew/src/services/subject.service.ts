@@ -1,7 +1,7 @@
 import { axiosInstance } from "@/lib/axios";
 import { Subject } from "@/types";
 
-const CACHE_KEY = "thub_subjects_cache";
+const CACHE_KEY = "thub_subjects_cache_v2";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const subjectRequests = new Map<string, Promise<Subject[]>>();
 
@@ -25,7 +25,14 @@ export const subjectService = {
     const request = axiosInstance.get(url).then((res) => {
       const data = res.data.data.subjects || res.data.data;
       const list = Array.isArray(data) ? data : [];
-      const subjects = list.map((s: Record<string, unknown>) => ({ ...(s as unknown as Subject), id: (s.id || s._id) as string }));
+      const subjects = list.map((s: Record<string, unknown>) => {
+        const branch = s.branch as Record<string, unknown> | undefined;
+        return {
+          ...(s as unknown as Subject),
+          id: (s.id || s._id) as string,
+          branchSlug: (branch?.slug || s.branchSlug) as string,
+        };
+      });
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(cacheKey, JSON.stringify(subjects));
@@ -38,8 +45,8 @@ export const subjectService = {
     subjectRequests.set(cacheKey, request);
     return request;
   },
-  getSubjectBySlug: async (slug: string): Promise<Subject> => {
-    const cacheKey = `${CACHE_KEY}_slug_${slug}`;
+  getSubjectBySlug: async (slug: string, branch?: string): Promise<Subject> => {
+    const cacheKey = `${CACHE_KEY}_slug_${branch || "any"}_${slug}`;
     if (typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem(cacheKey);
@@ -50,11 +57,14 @@ export const subjectService = {
       } catch {}
     }
 
-    const res = await axiosInstance.get(`/subjects/${slug}`);
+    const params = branch ? `?branch=${encodeURIComponent(branch)}` : "";
+    const res = await axiosInstance.get(`/subjects/${slug}${params}`);
     const s = res.data.data.subject || res.data.data;
+    const branchRecord = s.branch as Record<string, unknown> | undefined;
     const subject = {
       ...(s as unknown as Subject),
       id: (s.id || s._id) as string,
+      branchSlug: (branchRecord?.slug || s.branchSlug) as string,
     };
 
     if (typeof window !== "undefined") {

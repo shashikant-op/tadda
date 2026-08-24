@@ -1,7 +1,7 @@
 import { axiosInstance } from "@/lib/axios";
 import { Tutorial, Branch } from "@/types";
 
-const CACHE_KEY = "thub_tutorials_cache";
+const CACHE_KEY = "thub_tutorials_cache_v3";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const tutorialService = {
@@ -35,41 +35,30 @@ export const tutorialService = {
     return branches;
   },
 
-  getTutorials: async (branchId?: string, subjectSlug?: string): Promise<Tutorial[]> => {
-    const cacheKey = `${CACHE_KEY}_${branchId || "all"}_${subjectSlug || "all"}`;
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem(cacheKey);
-        const cachedTime = localStorage.getItem(`${cacheKey}_time`);
-        if (cached && cachedTime && Date.now() - parseInt(cachedTime, 10) < CACHE_TTL) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {}
+  getTutorials: async (branchId?: string, subjectSlug?: string, includeDrafts = false): Promise<Tutorial[]> => {
+    const params = new URLSearchParams({ limit: "100", page: "1" });
+    if (branchId) params.set("branch", branchId);
+    if (subjectSlug) params.set("subject", subjectSlug);
+    if (includeDrafts) params.set("status", "all");
+
+    const firstResponse = await axiosInstance.get(`/tutorials?${params.toString()}`);
+    const firstData = firstResponse.data.data;
+    const firstList = Array.isArray(firstData) ? firstData : (firstData?.tutorials || firstData?.data || []);
+    const combined = Array.isArray(firstList) ? [...firstList] : [];
+    const totalPages = Number(firstData?.pagination?.totalPages || 1);
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      params.set("page", String(page));
+      const response = await axiosInstance.get(`/tutorials?${params.toString()}`);
+      const pageData = response.data.data;
+      const pageList = Array.isArray(pageData) ? pageData : (pageData?.tutorials || pageData?.data || []);
+      if (Array.isArray(pageList)) combined.push(...pageList);
     }
 
-    let url = "/tutorials?limit=1000";
-    if (branchId) url += `&branch=${branchId}`;
-    if (subjectSlug) url += `&subject=${subjectSlug}`;
-    const res = await axiosInstance.get(url);
-    const responseData = res.data.data;
-    const list = Array.isArray(responseData)
-      ? responseData
-      : (responseData?.tutorials || responseData?.data || []);
-    const finalArr = Array.isArray(list) ? list : [];
-    const tutorials = finalArr.map((t: Record<string, unknown>) => ({
+    const tutorials = (combined as Record<string, unknown>[]).map((t) => ({
       ...(t as unknown as Tutorial),
       id: (t.id || t._id) as string,
     }));
-
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(tutorials));
-        localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
-      } catch {}
-    }
 
     return tutorials;
   },
@@ -115,7 +104,7 @@ export const tutorialService = {
       } catch {}
     }
 
-    const res = await axiosInstance.get(`/tutorials/search?q=${encodeURIComponent(query)}`);
+    const res = await axiosInstance.get(`/tutorials/search?q=${encodeURIComponent(query)}&limit=50`);
     const data = res.data.data.tutorials || res.data.data;
     const list = Array.isArray(data) ? data : [];
     const tutorials = (list as Record<string, unknown>[]).map((t) => ({
@@ -176,8 +165,9 @@ export const tutorialService = {
     }
   },
 
-  reorderTutorials: async (tutorialIds: string[]): Promise<void> => {
-    await axiosInstance.post("/tutorials/reorder", { tutorialIds });
+  reorderTutorials: async (tutorialIds: string[]): Promise<Tutorial[] | null> => {
+    const res = await axiosInstance.post("/tutorials/reorder", { tutorialIds });
+    const persistedTutorials = res.data.data?.tutorials;
     if (typeof window !== "undefined") {
       try {
         Object.keys(localStorage).forEach((k) => {
@@ -185,5 +175,6 @@ export const tutorialService = {
         });
       } catch {}
     }
+    return Array.isArray(persistedTutorials) ? persistedTutorials : null;
   },
 };

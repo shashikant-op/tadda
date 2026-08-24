@@ -63,10 +63,7 @@ export const useAuthStore = create<AuthState>((set) => {
         set({ user: null, token: null, isAuthenticated: false, isLoading: false });
         return;
       }
-      const currentState = useAuthStore.getState();
-      if (currentState.user && currentState.isAuthenticated) {
-        return;
-      }
+      set({ isLoading: true });
       try {
         const user = await authService.getCurrentUser();
         localStorage.setItem("user", JSON.stringify(user));
@@ -79,3 +76,7 @@ export const useAuthStore = create<AuthState>((set) => {
     },
   };
 });
+
+if (typeof window !== "undefined") {
+  window.addEventListener("auth:unauthorized", () => useAuthStore.getState().logout());
+}

@@ -11,7 +11,8 @@ export class MockAIProvider implements IAIProvider {
     
     // Extract course name if present in prompt
     let courseName = 'Dynamic Course';
-    const match = prompt.match(/for "([^"]+)"/i) || prompt.match(/for ([A-Za-z\s]+)\./i);
+    const match = prompt.match(/(?:curriculum for:|course(?: name)?\s*:)\s*\n?\s*"([^"]+)"/i)
+      || prompt.match(/for "([^"]+)"/i);
     if (match && match[1]) {
       courseName = match[1].trim();
     }

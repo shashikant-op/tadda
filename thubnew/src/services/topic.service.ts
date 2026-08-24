@@ -32,15 +32,17 @@ export const topicService = {
     return topics;
   },
 
-  reorderTopics: async (topicIds: string[]): Promise<void> => {
-    await axiosInstance.post("/topics/reorder", { topicIds });
+  reorderTopics: async (topicIds: string[]): Promise<Topic[] | null> => {
+    const res = await axiosInstance.post("/topics/reorder", { topicIds });
+    const persistedTopics = res.data.data?.topics;
     if (typeof window !== "undefined") {
       try {
         Object.keys(localStorage).forEach((k) => {
-          if (k.includes(CACHE_KEY)) localStorage.removeItem(k);
+          if (k.includes(CACHE_KEY) || k.includes("thub_tutorials_cache")) localStorage.removeItem(k);
         });
       } catch {}
     }
+    return Array.isArray(persistedTopics) ? persistedTopics : null;
   },
 
   deleteTopic: async (id: string): Promise<void> => {

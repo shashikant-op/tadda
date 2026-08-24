@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { Search, User as UserIcon, LogOut, Shield, ChevronDown, ChevronRight, FileText, Cpu, Layers, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth.store";
 import { branchService } from "@/services/branch.service";
@@ -25,9 +27,10 @@ export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<Tutorial[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [navigatingCourse, setNavigatingCourse] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const [isMounted, setIsMounted] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const { user, isAuthenticated, logout, initializeAuth } = useAuthStore();
 
   useEffect(() => {
@@ -48,23 +51,26 @@ export function Navbar() {
     return () => clearTimeout(timer);
   }, [initializeAuth]);
 
-  // Preload subjects for all branches for lightning-fast instant hover
+  // Load only the active branch to avoid an N+1 request burst on every page.
   useEffect(() => {
-    if (branches.length > 0) {
-      branches.forEach((b) => {
-        const bId = b.id || (b as unknown as Record<string, unknown>)._id;
-        if (bId) {
-          subjectService.getSubjects(bId as string)
-            .then((subs) => {
-              setSubjectsMap((prev) => ({ ...prev, [b.slug]: Array.isArray(subs) ? subs : [] }));
-            })
-            .catch(() => {});
-        }
+    if (!activeBranch || subjectsMap[activeBranch.slug]) return;
+    const branchId = activeBranch.id || (activeBranch as unknown as Record<string, unknown>)._id;
+    if (!branchId) return;
+
+    subjectService.getSubjects(branchId as string)
+      .then((subjects) => {
+        setSubjectsMap((previous) => ({
+          ...previous,
+          [activeBranch.slug]: Array.isArray(subjects) ? subjects : []
+        }));
+      })
+      .catch(() => {
+        setSubjectsMap((previous) => ({ ...previous, [activeBranch.slug]: [] }));
       });
-    }
-  }, [branches]);
+  }, [activeBranch, subjectsMap]);
 
   const currentSubjects = activeBranch ? (subjectsMap[activeBranch.slug] || []) : [];
+  const showAuthenticatedNavigation = isMounted && isAuthenticated;
 
   // Live Search effect with debounce
   useEffect(() => {
@@ -107,14 +113,39 @@ export function Navbar() {
     }
   };
 
+  const handleCourseNavigation = async (event: ReactMouseEvent<HTMLAnchorElement>, subject: Subject) => {
+    event.preventDefault();
+    if (!activeBranch || navigatingCourse) return;
+
+    setNavigatingCourse(subject.slug);
+    const courseUrl = `/${activeBranch.slug}/${subject.slug}`;
+    try {
+      // Legacy data may contain duplicate subject records with the same slug.
+      // Check each matching id and navigate straight to the first published lesson.
+      const matchingSubjects = currentSubjects.filter((candidate) => candidate.slug === subject.slug);
+      const groups = await Promise.all(matchingSubjects.map((candidate) => {
+        const subjectId = candidate.id || (candidate as unknown as Record<string, unknown>)._id;
+        return tutorialService.getTutorials(undefined, subjectId as string);
+      }));
+      const firstTutorial = groups.flat().find((tutorial) => Boolean(tutorial.slug));
+      router.push(firstTutorial ? `${courseUrl}/${firstTutorial.slug}` : courseUrl);
+      setCategoriesOpen(false);
+    } catch {
+      router.push(courseUrl);
+      setCategoriesOpen(false);
+    } finally {
+      setNavigatingCourse(null);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--canvas)]/90 backdrop-blur-xl">
       <div className="site-container flex h-16 items-center justify-between">
         {/* ================= MOBILE SECTION ================= */}
         {/* This section renders only on mobile screens (md:hidden) with logo, category link, and login section without dropdowns */}
-        <div className="flex md:hidden items-center justify-between w-full">
+        <div className="flex lg:hidden items-center justify-between w-full">
           <Link href="/" className="flex items-center space-x-2 shrink-0">
-            <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-8 w-8 rounded-lg object-cover" />
+            <Image src="/logopng.png" alt="TutorialsAdda Logo" width={32} height={32} className="h-8 w-8 rounded-lg object-cover" />
             <span className="font-semibold text-xs tracking-[-.02em] text-[var(--ink)]">TutorialsAdda</span>
           </Link>
 
@@ -124,16 +155,20 @@ export function Navbar() {
               Category
             </Link>
 
-            {isAuthenticated ? (
-              <Button asChild variant="outline" size="sm" className="h-7 px-2 text-[11px] font-medium border-[var(--border)]">
-                <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}>
-                  Dashboard
-                </Link>
-              </Button>
+            {showAuthenticatedNavigation ? (
+              <Link
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-7 px-2 text-[11px] font-medium border-[var(--border)]")}
+                href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}
+              >
+                Dashboard
+              </Link>
             ) : (
-              <Button asChild size="sm" className="h-7 px-2.5 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-[11px] font-medium">
-                <Link href="/auth/login">Login</Link>
-              </Button>
+              <Link
+                className={cn(buttonVariants({ size: "sm" }), "h-7 px-2.5 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-[11px] font-medium")}
+                href="/auth/login"
+              >
+                Login
+              </Link>
             )}
           </div>
         </div>
@@ -141,15 +176,15 @@ export function Navbar() {
 
         {/* ================= DESKTOP SECTION ================= */}
         {/* Desktop Logo */}
-        <div className="hidden md:flex items-center">
+        <div className="hidden lg:flex items-center">
           <Link href="/" className="flex items-center space-x-2.5">
-            <img src="/logopng.png" alt="TutorialsAdda Logo" className="h-9 w-9 rounded-[10px] object-cover" />
+            <Image src="/logopng.png" alt="TutorialsAdda Logo" width={36} height={36} className="h-9 w-9 rounded-[10px] object-cover" />
             <span className="font-semibold text-base tracking-[-.025em] text-[var(--ink)]">TutorialsAdda</span>
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
+        <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium">
           <div
             className="relative"
             onMouseEnter={() => setCategoriesOpen(true)}
@@ -206,11 +241,11 @@ export function Navbar() {
                           <Link
                             key={subject.id || subject.slug}
                             href={`/${activeBranch?.slug}/${subject.slug}`}
-                            onClick={() => setCategoriesOpen(false)}
+                            onClick={(event) => handleCourseNavigation(event, subject)}
                             className="block p-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--ink)] hover:shadow-sm transition-all group"
                           >
                             <div className="font-medium text-xs text-[var(--ink)] group-hover:text-[var(--ink)] flex items-center justify-between">
-                              <span>{subject.name}</span>
+                              <span>{subject.name}{navigatingCourse === subject.slug ? " — Opening…" : ""}</span>
                               <ChevronRight className="h-3.5 w-3.5 text-[var(--body)] group-hover:translate-x-1 transition-transform" />
                             </div>
                             <div className="text-[11px] text-[var(--body)] mt-0.5 line-clamp-1">{subject.description || "Structured tutorials & reference materials"}</div>
@@ -241,12 +276,13 @@ export function Navbar() {
         </nav>
 
         {/* Global Search Bar & Auth Actions */}
-        <div className="hidden md:flex items-center space-x-3">
+        <div className="hidden lg:flex items-center space-x-3">
           <ThemeSwitcher />
           <div className="relative w-60 lg:w-72" ref={searchRef}>
             <form onSubmit={handleSearchSubmit}>
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--body)]" />
               <Input
+                aria-label="Search documentation"
                 placeholder="Search documentation..."
                 className="h-9 w-full rounded-lg border-[var(--border)] bg-[var(--soft)]/70 pl-9 text-xs focus-visible:border-[var(--primary)] focus-visible:ring-0"
                 value={searchQuery}
@@ -272,12 +308,15 @@ export function Navbar() {
                     const tutAny = tutorial as unknown as Record<string, unknown>;
                     const branchObj = tutAny.branch as Record<string, unknown> | undefined;
                     const subjectObj = tutAny.subject as Record<string, unknown> | undefined;
-                    const branchSlug = typeof tutAny.branch === "object" && branchObj ? (branchObj.slug as string) : ((tutAny.branchSlug as string) || "computer-science");
-                    const subjectSlug = typeof tutAny.subject === "object" && subjectObj ? (subjectObj.slug as string) : ((tutAny.subjectSlug as string) || "data-structures");
+                    const branchSlug = typeof tutAny.branch === "object" && branchObj ? (branchObj.slug as string) : (tutAny.branchSlug as string);
+                    const subjectSlug = typeof tutAny.subject === "object" && subjectObj ? (subjectObj.slug as string) : (tutAny.subjectSlug as string);
+                    const tutorialHref = branchSlug && subjectSlug
+                      ? `/${branchSlug}/${subjectSlug}/${tutorial.slug}`
+                      : `/search?q=${encodeURIComponent(tutorial.title)}`;
                     return (
                       <Link
                         key={tutorial.id || tutorial.slug}
-                        href={`/${branchSlug}/${subjectSlug}/${tutorial.slug}`}
+                        href={tutorialHref}
                         className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-[var(--surface)] transition-colors text-xs group"
                         onClick={() => {
                           setSearchOpen(false);
@@ -304,7 +343,7 @@ export function Navbar() {
 
           {!isMounted ? (
             <div className="h-8 w-20 bg-[var(--soft)] animate-pulse rounded-md" />
-          ) : isAuthenticated ? (
+          ) : showAuthenticatedNavigation ? (
             <div className="flex items-center space-x-2">
               <Link href={user?.role === "admin" ? "/admin" : user?.role === "author" ? "/author/dashboard" : "/dashboard"}>
                 <Button variant="outline" size="sm" className="h-8 text-xs font-medium border-[var(--border)] hover:border-[var(--ink)]">

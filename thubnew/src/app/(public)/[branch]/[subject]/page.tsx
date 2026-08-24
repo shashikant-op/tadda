@@ -7,6 +7,7 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 import { Navbar } from "@/components/navbar/Navbar";
 import { tutorialService } from "@/services/tutorial.service";
 import { subjectService } from "@/services/subject.service";
+import { branchService } from "@/services/branch.service";
 import { Tutorial } from "@/types";
 
 interface PageProps {
@@ -35,15 +36,22 @@ export default function CourseEndpointPage({ params }: PageProps) {
 
     async function openCoursePlayer() {
       try {
-        // Public routes use slugs, while the tutorial endpoint filters by subject id.
-        const subjectRecord = await subjectService.getSubjectBySlug(subject);
-        const subjectId = subjectRecord.id || (subjectRecord as unknown as Record<string, unknown>)._id;
-        const response = await tutorialService.getTutorials(undefined, subjectId as string);
+        // Subject slugs are branch-scoped, and legacy data may contain more
+        // than one subject with the same slug. Resolve within the branch and
+        // inspect every matching subject id before choosing the first lesson.
+        const branchRecord = await branchService.getBranchBySlug(branch);
+        const branchId = branchRecord.id || (branchRecord as unknown as Record<string, unknown>)._id;
+        const branchSubjects = await subjectService.getSubjects(branchId as string);
+        const matchingSubjects = branchSubjects.filter((record) => record.slug === subject);
+        const tutorialGroups = await Promise.all(matchingSubjects.map((record) => {
+          const subjectId = record.id || (record as unknown as Record<string, unknown>)._id;
+          return tutorialService.getTutorials(undefined, subjectId as string);
+        }));
         if (!active) return;
 
-        const tutorials = Array.isArray(response) ? response : [];
+        const tutorials = tutorialGroups.flat();
         const firstTutorial = tutorials.find((tutorial) =>
-          belongsToSubject(tutorial, subject) || belongsToSubject(tutorial, subjectId as string)
+          belongsToSubject(tutorial, subject)
         ) || tutorials[0];
 
         if (!firstTutorial?.slug) {

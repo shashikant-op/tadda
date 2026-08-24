@@ -8,18 +8,19 @@ const ApiResponse = require('../utils/ApiResponse');
 
 const getAnalytics = async (req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalTutorials = await Tutorial.countDocuments();
-    const totalBranches = await Branch.countDocuments();
-    const totalSubjects = await Subject.countDocuments();
-    const totalTopics = await Topic.countDocuments();
+    const [totalUsers, totalTutorials, totalBranches, totalSubjects, totalTopics, activeAuthors] = await Promise.all([
+      User.countDocuments(),
+      Tutorial.countDocuments(),
+      Branch.countDocuments(),
+      Subject.countDocuments(),
+      Topic.countDocuments(),
+      User.countDocuments({ role: 'author' })
+    ]);
 
     const popularTutorials = await Tutorial.find({ status: 'published' })
       .sort({ views: -1 })
       .limit(5)
       .select('title slug views');
-
-    const activeAuthors = await User.countDocuments({ role: 'author' });
 
     res.status(200).json(new ApiResponse(200, 'Analytics fetched successfully', {
       stats: {
@@ -52,6 +53,9 @@ const updateUserRole = async (req, res, next) => {
     if (!['student', 'author', 'admin'].includes(role)) {
       throw new ApiError(400, 'Invalid role');
     }
+    if (req.params.id === req.user._id.toString() && role !== 'admin') {
+      throw new ApiError(409, 'Administrators cannot remove their own admin role');
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -71,6 +75,13 @@ const updateUserRole = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
   try {
+    if (req.params.id === req.user._id.toString()) {
+      throw new ApiError(409, 'Administrators cannot delete their own account');
+    }
+    const authoredTutorials = await Tutorial.countDocuments({ author: req.params.id });
+    if (authoredTutorials > 0) {
+      throw new ApiError(409, 'Reassign or delete this user\'s tutorials before deleting the account');
+    }
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
       throw new ApiError(404, 'User not found');

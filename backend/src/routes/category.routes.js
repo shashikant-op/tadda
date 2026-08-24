@@ -28,6 +28,6 @@ router.post('/topics', protect, authorize('author', 'admin'), createTopic);
 router.get('/topics', getTopics);
 router.get('/topics/:slug', getTopicBySlug);
 router.put('/topics/:id', protect, authorize('author', 'admin'), updateTopic);
-router.delete('/topics/:id', protect, authorize('author', 'admin'), deleteTopic);
+router.delete('/topics/:id', protect, authorize('admin'), deleteTopic);
 
 module.exports = router;

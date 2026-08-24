@@ -1,4 +1,11 @@
 export type JobStatus = 'pending' | 'researching' | 'structuring' | 'generating_content' | 'generating_visuals' | 'validating' | 'saving' | 'completed' | 'failed';
+export interface PipelineLog {
+    timestamp: string;
+    level: "DEBUG" | "INFO" | "SUCCESS" | "WARN" | "ERROR";
+    stage: "RESEARCH" | "CURRICULUM" | "CONTENT" | "VISUAL" | "VALIDATION" | "PERSISTENCE" | "SYSTEM";
+    message: string;
+    metadata?: Record<string, unknown>;
+}
 export interface CourseGenerationJob {
     jobId: string;
     courseName: string;
@@ -12,6 +19,7 @@ export interface CourseGenerationJob {
         timestamp: string;
         jobId: string;
     }>;
+    logs: PipelineLog[];
     result?: GenerationResult;
 }
 export interface ResearchSource {

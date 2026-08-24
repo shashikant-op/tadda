@@ -3,19 +3,23 @@ const streamifier = require('streamifier');
 const ApiError = require('../utils/ApiError');
 
 const uploadToCloudinary = (fileBuffer, mimetype = 'image/jpeg') => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    let settled = false;
     const timeout = setTimeout(() => {
-      const base64 = fileBuffer.toString('base64');
-      resolve(`data:${mimetype};base64,${base64}`);
+      settled = true;
+      reject(new ApiError(504, 'Image upload timed out'));
     }, 6000);
 
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'tutorialsadda' },
       (error, result) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timeout);
         if (error) {
-          const base64 = fileBuffer.toString('base64');
-          resolve(`data:${mimetype};base64,${base64}`);
+          reject(new ApiError(502, 'Image upload failed'));
+        } else if (!result?.secure_url) {
+          reject(new ApiError(502, 'Image upload returned no URL'));
         } else {
           resolve(result.secure_url);
         }

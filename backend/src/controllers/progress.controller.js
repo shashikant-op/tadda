@@ -6,7 +6,10 @@ const ApiResponse = require('../utils/ApiResponse');
 const markProgressCompleted = async (req, res, next) => {
   try {
     const tutorialId = req.params.tutorialId;
-    const tutorial = await Tutorial.findById(tutorialId);
+    const tutorial = await Tutorial.findOne({
+      _id: tutorialId,
+      ...(req.user.role === 'student' ? { status: 'published' } : {})
+    });
     if (!tutorial) {
       throw new ApiError(404, 'Tutorial not found');
     }

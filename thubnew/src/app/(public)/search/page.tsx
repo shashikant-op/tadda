@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { TutorialCard } from "@/components/cards/TutorialCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search as SearchIcon, Filter, Cpu, BookOpen, ChevronRight } from "lucide-react";
+import { Search as SearchIcon, Layers, Cpu, BookOpen, ChevronRight } from "lucide-react";
 import { tutorialService } from "@/services/tutorial.service";
 import { branchService } from "@/services/branch.service";
 import { subjectService } from "@/services/subject.service";
@@ -16,6 +16,8 @@ import { Tutorial, Branch, Subject } from "@/types";
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchSequence = useRef(0);
   const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Tutorial[]>([]);
@@ -40,26 +42,49 @@ function SearchContent() {
   }, []);
 
   useEffect(() => {
-    if (selectedBranch) {
+    let active = true;
+    const loadSubjects = async () => {
+      if (!selectedBranch) return;
       const bId = selectedBranch.id || (selectedBranch as unknown as Record<string, unknown>)._id;
-      if (bId) {
-        setIsLoadingSubjects(true);
-        subjectService.getSubjects(bId as string)
-          .then((subs) => setSubjects(Array.isArray(subs) ? subs : []))
-          .catch(() => setSubjects([]))
-          .finally(() => setIsLoadingSubjects(false));
+      if (!bId) return;
+
+      await Promise.resolve();
+      if (active) setIsLoadingSubjects(true);
+      try {
+        const subs = await subjectService.getSubjects(bId as string);
+        if (active) setSubjects(Array.isArray(subs) ? subs : []);
+      } catch {
+        if (active) setSubjects([]);
+      } finally {
+        if (active) setIsLoadingSubjects(false);
       }
-    }
+    };
+    void loadSubjects();
+    return () => { active = false; };
   }, [selectedBranch]);
 
-  const handleSearch = (searchVal: string) => {
+  const handleSearch = useCallback((searchVal: string) => {
+    const term = searchVal.trim();
+    const sequence = ++searchSequence.current;
+    if (!term) {
+      setResults([]);
+      setIsLoading(false);
+      router.replace("/search", { scroll: false });
+      return;
+    }
+    router.replace(`/search?q=${encodeURIComponent(term)}`, { scroll: false });
     setIsLoading(true);
-    const term = searchVal.trim() || "";
     tutorialService.searchTutorials(term)
-      .then((data) => setResults(Array.isArray(data) ? data : []))
-      .catch(() => setResults([]))
-      .finally(() => setIsLoading(false));
-  };
+      .then((data) => {
+        if (sequence === searchSequence.current) setResults(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (sequence === searchSequence.current) setResults([]);
+      })
+      .finally(() => {
+        if (sequence === searchSequence.current) setIsLoading(false);
+      });
+  }, [router]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,7 +93,7 @@ function SearchContent() {
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [initialQuery]);
+  }, [initialQuery, handleSearch]);
 
   return (
     <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-5xl space-y-8">
@@ -83,6 +108,7 @@ function SearchContent() {
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label="Search tutorials"
               placeholder="Search by keyword (e.g. binary search)..."
               className="pl-10 h-11 text-xs"
               value={query}
@@ -90,7 +116,9 @@ function SearchContent() {
               onKeyDown={(e) => e.key === "Enter" && handleSearch(query)}
             />
           </div>
-          <Button className="h-11 px-6 text-xs font-medium" onClick={() => handleSearch(query)}>Search</Button>
+          <Button className="h-11 px-6 text-xs font-medium" disabled={isLoading} onClick={() => handleSearch(query)}>
+            {isLoading ? "Searching…" : "Search"}
+          </Button>
         </div>
       </div>
 
@@ -99,9 +127,15 @@ function SearchContent() {
         <div className="space-y-6">
           <div className="flex items-center justify-between pb-4 border-b">
             <h2 className="text-sm font-bold uppercase tracking-wider">Search Results ({results.length})</h2>
-            <Button variant="outline" size="sm" className="h-8 text-xs flex items-center space-x-2">
-              <Filter className="h-3.5 w-3.5" />
-              <span>Filter</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs flex items-center space-x-2"
+              onClick={() => { setQuery(""); setResults([]); router.replace("/search", { scroll: false }); }}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              <span>Browse categories</span>
             </Button>
           </div>
 
@@ -127,10 +161,12 @@ function SearchContent() {
               {branches.map((branch) => {
                 const isSelected = branch.slug === selectedBranch?.slug;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={branch.id || branch.slug}
                     onClick={() => setSelectedBranch(branch)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                    aria-pressed={isSelected}
+                    className={`p-4 rounded-xl border cursor-pointer text-left transition-all flex flex-col justify-between ${
                       isSelected ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--primary-foreground)] shadow-md" : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--ink)]"
                     }`}
                   >
@@ -141,7 +177,7 @@ function SearchContent() {
                     <span className={`text-[10px] mt-3 ${isSelected ? "text-gray-300" : "text-muted-foreground"}`}>
                       {branch.description || "Engineering branch"}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>

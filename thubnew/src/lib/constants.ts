@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tutorialsadda.com";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tutorialsadda.com/api/v1";
 
 export const NAVIGATION_BRANCHES = [
   { name: "Computer Science", href: "/computer-science", icon: "Cpu" },

@@ -24,11 +24,34 @@ class JobManager {
             createdAt: now,
             updatedAt: now,
             progress: 0,
-            errors: []
+            errors: [],
+            logs: [
+                {
+                    timestamp: new Date().toLocaleTimeString(),
+                    level: 'INFO',
+                    stage: 'SYSTEM',
+                    message: `Pipeline initialized for course "${trimmedName}" (ID: ${jobId})`
+                }
+            ]
         };
         this.jobs.set(jobId, job);
         console.log(`[JOB] jobId=${jobId} created for course "${trimmedName}"`);
         return job;
+    }
+    addLog(jobId, level, stage, message, metadata) {
+        const job = this.jobs.get(jobId);
+        if (!job)
+            return;
+        const logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            level,
+            stage,
+            message,
+            metadata
+        };
+        job.logs.push(logEntry);
+        job.updatedAt = new Date().toISOString();
+        console.log(`[${level}] [${stage}] ${message}`);
     }
     getJob(jobId) {
         return this.jobs.get(jobId);

@@ -1,4 +1,8 @@
+"use client";
+
 import React from "react";
+import DOMPurify from "dompurify";
+import Image from "next/image";
 import { CodeBlock } from "./CodeBlock";
 import { Info, AlertTriangle, Lightbulb } from "lucide-react";
 
@@ -7,23 +11,26 @@ interface MarkdownRendererProps {
 }
 
 function parseInline(text: string): string {
-  return text
+  const rendered = text
     .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-muted font-mono text-xs text-foreground border border-border/60">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/~~([^~]+)~~/g, '<del>$1</del>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary underline font-medium hover:text-primary/80 transition-colors">$1</a>');
+  return DOMPurify.sanitize(rendered);
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   if (!content) return null;
 
-  const isHtml = /<[a-z][\s\S]*>/i.test(content);
+  // Older lessons may contain complete HTML documents, while current Markdown can
+  // intentionally contain safe inline HTML such as <u> for underlined text.
+  const isHtml = /^\s*<(?:div|p|h[1-6]|ul|ol|blockquote|pre|table|section|article)\b/i.test(content);
   if (isHtml) {
     return (
-      <div 
+      <div
         className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed space-y-4 text-foreground"
-        dangerouslySetInnerHTML={{ __html: content }} 
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
       />
     );
   }
@@ -156,13 +163,25 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       );
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       elements.push(<li key={index} className="list-disc ml-6 my-1 text-foreground/90 leading-relaxed" dangerouslySetInnerHTML={{ __html: parseInline(line.replace(/^[-*]\s+/, "")) }} />);
+    } else if (/^\d+\.\s+/.test(line)) {
+      const match = line.match(/^(\d+)\.\s+(.*)$/);
+      if (match) {
+        elements.push(
+          <li
+            key={index}
+            value={Number(match[1])}
+            className="list-decimal ml-6 my-1 text-foreground/90 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: parseInline(match[2]) }}
+          />
+        );
+      }
     } else {
       const imgRegex = /^!\[([^\]]*)\]\(([^)]+)\)$/;
       const imgMatch = line.match(imgRegex);
       if (imgMatch) {
         elements.push(
           <div key={index} className="my-5">
-            <img src={imgMatch[2]} alt={imgMatch[1]} className="rounded-xl max-h-[420px] w-full object-cover shadow-md border border-border" />
+            <Image src={imgMatch[2]} alt={imgMatch[1]} width={1200} height={630} sizes="(max-width: 768px) 100vw, 900px" unoptimized className="rounded-xl max-h-[420px] w-full object-cover shadow-md border border-border" />
           </div>
         );
         return;

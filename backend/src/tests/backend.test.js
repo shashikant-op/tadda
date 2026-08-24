@@ -25,8 +25,7 @@ describe("Authentication", () => {
       .send({
         name: username,
         email,
-        password,
-        role: 'student'
+        password
       });
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
@@ -50,8 +49,7 @@ describe("Authentication", () => {
     await request(app).post('/api/v1/auth/register').send({
       name: 'Login User',
       email,
-      password: 'shashikant',
-      role: 'student'
+      password: 'shashikant'
     });
 
     const res = await request(app)

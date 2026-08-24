@@ -9,6 +9,8 @@ import {
   Bold,
   Italic,
   Heading1,
+  Heading2,
+  Heading3,
   Link as LinkIcon,
   Image as ImageIcon,
   List,
@@ -16,7 +18,31 @@ import {
   Eye,
   Edit3,
   Loader2,
+  Underline,
+  Strikethrough,
+  ListOrdered,
+  Quote,
+  RemoveFormatting,
+  Minus,
+  Pilcrow,
 } from "lucide-react";
+
+const PREVIEW_TOOLS = [
+  { label: "Paragraph", icon: Pilcrow, command: "formatBlock", value: "<p>" },
+  { label: "Heading 1", icon: Heading1, command: "formatBlock", value: "<h1>" },
+  { label: "Heading 2", icon: Heading2, command: "formatBlock", value: "<h2>" },
+  { label: "Heading 3", icon: Heading3, command: "formatBlock", value: "<h3>" },
+  { label: "Bold", icon: Bold, command: "bold" },
+  { label: "Italic", icon: Italic, command: "italic" },
+  { label: "Underline", icon: Underline, command: "underline" },
+  { label: "Strikethrough", icon: Strikethrough, command: "strikeThrough" },
+  { label: "Bullet list", icon: List, command: "insertUnorderedList" },
+  { label: "Numbered list", icon: ListOrdered, command: "insertOrderedList" },
+  { label: "Quote", icon: Quote, command: "formatBlock", value: "<blockquote>" },
+  { label: "Link", icon: LinkIcon, command: "createLink" },
+  { label: "Horizontal rule", icon: Minus, command: "insertHorizontalRule" },
+  { label: "Clear formatting", icon: RemoveFormatting, command: "removeFormat" },
+] as const;
 
 const turndownService = new TurndownService({
   headingStyle: "atx",
@@ -24,6 +50,19 @@ const turndownService = new TurndownService({
   bulletListMarker: "-",
 });
 turndownService.use(gfm.gfm);
+turndownService.addRule("underline", {
+  filter: ["u"],
+  replacement: (content) => `<u>${content}</u>`,
+});
+turndownService.addRule("previewFencedCode", {
+  filter: (node) => node instanceof HTMLElement && node.hasAttribute("data-code-language"),
+  replacement: (_content, node) => {
+    const element = node as HTMLElement;
+    const language = element.dataset.codeLanguage || "text";
+    const code = element.querySelector("pre code")?.textContent || "";
+    return `\n\n\`\`\`${language}\n${code.replace(/\n$/, "")}\n\`\`\`\n\n`;
+  },
+});
 
 interface GithubMarkdownEditorProps {
   initialContent?: string;
@@ -37,6 +76,9 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editablePreviewRef = useRef<HTMLDivElement>(null);
+  const previewDirtyRef = useRef(false);
+  const previewSelectionRef = useRef<Range | null>(null);
 
   const updateContent = (newText: string) => {
     setContent(newText);
@@ -154,6 +196,72 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   };
   const handleList = () => insertAtCursor("- List item");
   const handleCode = () => insertAtCursor("```typescript\nconsole.log('Hello GitHub Editor');\n```");
+
+  const handlePreviewBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (!previewDirtyRef.current) return;
+    previewDirtyRef.current = false;
+    const editable = event.currentTarget;
+    const clone = editable.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("[data-preview-control]").forEach((control) => control.remove());
+    const sanitizedHtml = DOMPurify.sanitize(clone.innerHTML);
+
+    const markdown = turndownService.turndown(sanitizedHtml)
+      .replace(/\u00A0/g, " ")
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    updateContent(markdown);
+  };
+
+  const capturePreviewSelection = () => {
+    const preview = editablePreviewRef.current;
+    const selection = window.getSelection();
+    if (!preview || !selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (preview.contains(range.commonAncestorContainer)) {
+      previewSelectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restorePreviewSelection = () => {
+    const preview = editablePreviewRef.current;
+    const range = previewSelectionRef.current;
+    if (!preview || !range || !preview.contains(range.commonAncestorContainer)) return false;
+
+    preview.focus();
+    const selection = window.getSelection();
+    if (!selection) return false;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
+  };
+
+  const applyPreviewCommand = (command: string, value?: string) => {
+    if (!restorePreviewSelection()) {
+      setError("Select content in the preview before applying formatting.");
+      return;
+    }
+
+    document.execCommand(command, false, value);
+    if (command === "removeFormat") {
+      document.execCommand("formatBlock", false, "<p>");
+    }
+    previewDirtyRef.current = true;
+    setError(null);
+    capturePreviewSelection();
+  };
+
+  const addPreviewLink = () => {
+    const range = previewSelectionRef.current;
+    if (!range || range.collapsed) {
+      setError("Select some preview text before adding a link.");
+      return;
+    }
+    const url = prompt("Enter the destination URL:", "https://");
+    if (!url) return;
+    applyPreviewCommand("createLink", url);
+  };
 
   return (
     <div className="border rounded-xl bg-card shadow-xs overflow-hidden flex flex-col">
@@ -284,10 +392,55 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
         </div>
       ) : (
         <div className="p-6 min-h-[320px] bg-card">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b">
-            Live Preview
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <span>Live Preview</span>
+            <span className="font-medium normal-case tracking-normal text-primary">Click the content to edit · changes sync automatically</span>
           </div>
-          <MarkdownRenderer content={content} />
+          <div
+            data-preview-control
+            className="sticky top-16 z-10 mb-3 flex flex-wrap items-center gap-1 rounded-lg border bg-background/95 p-2 shadow-sm backdrop-blur"
+            aria-label="Preview formatting toolbar"
+          >
+            {PREVIEW_TOOLS.map(({ label, icon: Icon, command, ...tool }) => (
+              <button
+                key={label}
+                type="button"
+                title={label}
+                aria-label={label}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  if (command === "createLink") {
+                    addPreviewLink();
+                    return;
+                  }
+                  applyPreviewCommand(command, "value" in tool ? tool.value : undefined);
+                }}
+                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+          <div
+            ref={editablePreviewRef}
+            contentEditable
+            suppressContentEditableWarning
+            role="textbox"
+            aria-label="Editable lesson preview"
+            aria-multiline="true"
+            spellCheck
+            onInput={() => {
+              previewDirtyRef.current = true;
+              capturePreviewSelection();
+            }}
+            onMouseUp={capturePreviewSelection}
+            onKeyUp={capturePreviewSelection}
+            onFocus={capturePreviewSelection}
+            onBlur={handlePreviewBlur}
+            className="min-h-[240px] rounded-lg border border-transparent p-2 outline-none transition-colors hover:border-border focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
+          >
+            <MarkdownRenderer content={content} />
+          </div>
         </div>
       )}
     </div>

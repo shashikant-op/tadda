@@ -32,4 +32,13 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const optionalProtect = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return next();
+  }
+
+  return protect(req, res, next);
+};
+
+module.exports = { protect, optionalProtect };
