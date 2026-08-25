@@ -4,6 +4,8 @@ import React from "react";
 import DOMPurify from "dompurify";
 import Image from "next/image";
 import { CodeBlock } from "./CodeBlock";
+import { AiImagePromptBlock } from "./AiImagePromptBlock";
+import { parseAiImagePrompt } from "@/lib/ai-image-prompts";
 import { Info, AlertTriangle, Lightbulb } from "lucide-react";
 
 interface MarkdownRendererProps {
@@ -86,11 +88,15 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     if (line.startsWith("```")) {
       flushTable(index);
       if (inCodeBlock) {
-        elements.push(
+        const code = codeBuffer.join("\n");
+        const aiSuggestion = codeLang === "ai-image-prompt" ? parseAiImagePrompt(code) : null;
+        elements.push(aiSuggestion ? (
+          <AiImagePromptBlock key={`ai-image-prompt-${index}`} suggestion={aiSuggestion} raw={code} />
+        ) : (
           <div key={`code-${index}`} className="my-4">
-            <CodeBlock language={codeLang} code={codeBuffer.join("\n")} />
+            <CodeBlock language={codeLang} code={code} />
           </div>
-        );
+        ));
         codeBuffer = [];
         inCodeBlock = false;
       } else {

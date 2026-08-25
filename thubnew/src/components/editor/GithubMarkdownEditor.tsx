@@ -71,7 +71,7 @@ interface GithubMarkdownEditorProps {
 }
 
 export function GithubMarkdownEditor({ initialContent = "", onChange, placeholder }: GithubMarkdownEditorProps) {
-  const [content, setContent] = useState(initialContent);
+  const content = initialContent;
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,6 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   const previewSelectionRef = useRef<Range | null>(null);
 
   const updateContent = (newText: string) => {
-    setContent(newText);
     onChange(newText);
   };
 

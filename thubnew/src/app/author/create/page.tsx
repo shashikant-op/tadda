@@ -16,6 +16,7 @@ import { Footer } from "@/components/footer/Footer";
 import { axiosInstance } from "@/lib/axios";
 import { Branch, Subject, Topic } from "@/types";
 import { GithubMarkdownEditor } from "@/components/editor/GithubMarkdownEditor";
+import { insertAiImagePrompts, removeAiImagePromptBlocks, type AiImagePromptSuggestion } from "@/lib/ai-image-prompts";
 import {
   Save,
   Plus,
@@ -27,6 +28,8 @@ import {
   Copy,
   Check,
   Layers,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 function AuthorCreateForm() {
@@ -55,6 +58,7 @@ function AuthorCreateForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isGeneratingImagePrompts, setIsGeneratingImagePrompts] = useState(false);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -146,6 +150,52 @@ function AuthorCreateForm() {
     navigator.clipboard.writeText(codeSnippet);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleGenerateImagePrompts = async () => {
+    try {
+      setIsGeneratingImagePrompts(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      if (content.trim().length < 40) {
+        throw new Error("Add the lesson content before requesting AI image prompts.");
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Please sign in again to use AI image prompts.");
+
+      const subject = subjects.find((item) => (item.id || (item as unknown as { _id?: string })._id) === selectedSubject);
+      const topic = topics.find((item) => (item.id || (item as unknown as { _id?: string })._id) === selectedTopic);
+      const response = await fetch("/api/ai-image-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          courseName: subject?.name || "Untitled course",
+          moduleName: topic?.name || "Untitled module",
+          topicName: lessonTitle.trim() || topic?.name || "Untitled lesson",
+          subtopicName: lessonTitle.trim() || "Untitled lesson",
+          content: removeAiImagePromptBlocks(content),
+        }),
+      });
+      const payload = await response.json() as {
+        success?: boolean;
+        message?: string;
+        data?: { needsVisual: boolean; visualCount: number; visuals: AiImagePromptSuggestion[] };
+      };
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.message || "Failed to generate image prompts.");
+      }
+
+      setContent(insertAiImagePrompts(content, payload.data.visuals));
+      setSuccessMessage(payload.data.needsVisual
+        ? `${payload.data.visualCount} AI image prompt${payload.data.visualCount === 1 ? " was" : "s were"} inserted at the recommended location${payload.data.visualCount === 1 ? "" : "s"}. Open Preview to see the green prompt cards.`
+        : "Gemini reviewed the full lesson and found no image that would add meaningful educational value.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to generate image prompts.");
+    } finally {
+      setIsGeneratingImagePrompts(false);
+    }
   };
 
   const handleSaveOrPublish = async (status: "draft" | "published") => {
@@ -436,10 +486,24 @@ function AuthorCreateForm() {
 
               {/* Main Content GitHub Markdown Editor */}
               <div className="space-y-3">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1.5">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <span>Lesson Content (GitHub Markdown Editor with Cloudinary Image Drop & Upload)</span>
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1.5">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span>Lesson Content (GitHub Markdown Editor with Cloudinary Image Drop & Upload)</span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateImagePrompts}
+                    disabled={isGeneratingImagePrompts || content.trim().length < 40}
+                    className="border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+                    title="Analyze the complete lesson and insert educational image prompts"
+                  >
+                    {isGeneratingImagePrompts ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
+                    {isGeneratingImagePrompts ? "Analyzing lesson..." : "AI Image Prompt"}
+                  </Button>
+                </div>
                 <GithubMarkdownEditor
                   initialContent={content}
                   onChange={(text) => setContent(text)}
