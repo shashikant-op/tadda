@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createBranch, getBranches, getBranchBySlug, updateBranch, deleteBranch,
+  createBranch, getBranches, getBranchImage, getBranchBySlug, updateBranch, deleteBranch,
   createSubject, getSubjects, getSubjectBySlug, updateSubject, deleteSubject,
   createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic, reorderTopics
 } = require('../controllers/category.controller');
@@ -11,6 +11,7 @@ const { authorize } = require('../middleware/role.middleware');
 // --- Branches Routes ---
 router.post('/branches', protect, authorize('admin'), createBranch);
 router.get('/branches', getBranches);
+router.get('/branches/:id/image', getBranchImage);
 router.get('/branches/:slug', getBranchBySlug);
 router.put('/branches/:id', protect, authorize('admin'), updateBranch);
 router.delete('/branches/:id', protect, authorize('admin'), deleteBranch);

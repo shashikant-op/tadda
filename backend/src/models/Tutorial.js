@@ -85,5 +85,6 @@ const tutorialSchema = new mongoose.Schema({
 
 tutorialSchema.index({ title: 'text', description: 'text', content: 'text' });
 tutorialSchema.index({ branch: 1, subject: 1, topic: 1 });
+tutorialSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Tutorial', tutorialSchema);

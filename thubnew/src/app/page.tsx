@@ -8,9 +8,7 @@ import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { BranchCard } from "@/components/cards/BranchCard";
 import { TutorialCard } from "@/components/cards/TutorialCard";
-import { branchService } from "@/services/branch.service";
-import { tutorialService } from "@/services/tutorial.service";
-import { subjectService } from "@/services/subject.service";
+import { homeService } from "@/services/home.service";
 import { Branch, Subject, Tutorial } from "@/types";
 
 function LoadingGrid({ count = 4 }: { count?: number }) {
@@ -28,13 +26,19 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([branchService.getBranches(), tutorialService.getTutorials(), subjectService.getSubjects()])
-      .then(([branchResult, tutorialResult, courseResult]) => {
-        if (branchResult.status === "fulfilled") setBranches(branchResult.value);
-        if (tutorialResult.status === "fulfilled") setTutorials(tutorialResult.value.slice(0, 6));
-        if (courseResult.status === "fulfilled") setCourses(courseResult.value);
-        setLoading(false);
+    let active = true;
+    homeService.getHome()
+      .then((data) => {
+        if (!active) return;
+        setBranches(data.branches);
+        setTutorials(data.tutorials);
+        setCourses(data.courses);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
       });
+    return () => { active = false; };
   }, []);
 
   return <div className="min-h-screen">

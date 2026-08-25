@@ -81,7 +81,8 @@ describe('security boundaries', () => {
   });
 
   test('public tutorial listings always filter to published content', async () => {
-    const limit = jest.fn().mockResolvedValue([]);
+    const lean = jest.fn().mockResolvedValue([]);
+    const limit = jest.fn(() => ({ lean }));
     const skip = jest.fn(() => ({ limit }));
     const sort = jest.fn(() => ({ skip }));
     const populate = jest.fn(() => ({ sort }));
@@ -99,7 +100,9 @@ describe('security boundaries', () => {
   });
 
   test('public tutorial detail lookup requires published status', async () => {
-    const populate = jest.fn().mockResolvedValue(null);
+    const lean = jest.fn().mockResolvedValue(null);
+    const populate = jest.fn();
+    populate.mockReturnValue({ populate, lean });
     Tutorial.findOne.mockReturnValue({ populate });
 
     const req = { params: { slug: 'draft-lesson' }, query: {} };
@@ -108,6 +111,7 @@ describe('security boundaries', () => {
     await getTutorialBySlug(req, res, next);
 
     expect(Tutorial.findOne).toHaveBeenCalledWith({ slug: 'draft-lesson', status: 'published' });
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
   });
 
   test('quiz retrieval removes answer keys', async () => {

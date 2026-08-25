@@ -6,6 +6,7 @@ const Tutorial = require('../models/Tutorial');
 const { generateSlug } = require('../utils/slug');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
+const { invalidateHomeCache } = require('../utils/homeCache');
 
 // --- Branch Controllers ---
 const createBranch = async (req, res, next) => {
@@ -19,7 +20,29 @@ const createBranch = async (req, res, next) => {
     }
 
     const branch = await Branch.create({ name, slug, description, image });
+    invalidateHomeCache();
     res.status(201).json(new ApiResponse(201, 'Branch created successfully', { branch }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getBranchImage = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw new ApiError(404, 'Branch image not found');
+    }
+    const branch = await Branch.findById(req.params.id).select('image').lean();
+    if (!branch?.image?.startsWith('data:')) {
+      throw new ApiError(404, 'Branch image not found');
+    }
+
+    const match = branch.image.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,(.+)$/s);
+    if (!match) throw new ApiError(415, 'Branch image format is not supported');
+
+    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.type(match[1]).send(Buffer.from(match[2], 'base64'));
   } catch (err) {
     next(err);
   }
@@ -55,6 +78,7 @@ const updateBranch = async (req, res, next) => {
     if (!branch) {
       throw new ApiError(404, 'Branch not found');
     }
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Branch updated successfully', { branch }));
   } catch (err) {
     next(err);
@@ -71,6 +95,7 @@ const deleteBranch = async (req, res, next) => {
     if (!branch) {
       throw new ApiError(404, 'Branch not found');
     }
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Branch deleted successfully', null));
   } catch (err) {
     next(err);
@@ -84,6 +109,7 @@ const createSubject = async (req, res, next) => {
     const slug = generateSlug(name);
 
     const subject = await Subject.create({ name, slug, branch, description });
+    invalidateHomeCache();
     res.status(201).json(new ApiResponse(201, 'Subject created successfully', { subject }));
   } catch (err) {
     next(err);
@@ -130,6 +156,7 @@ const updateSubject = async (req, res, next) => {
     if (!subject) {
       throw new ApiError(404, 'Subject not found');
     }
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Subject updated successfully', { subject }));
   } catch (err) {
     next(err);
@@ -146,6 +173,7 @@ const deleteSubject = async (req, res, next) => {
     if (!subject) {
       throw new ApiError(404, 'Subject not found');
     }
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Subject deleted successfully', null));
   } catch (err) {
     next(err);
@@ -261,7 +289,7 @@ const reorderTopics = async (req, res, next) => {
 };
 
 module.exports = {
-  createBranch, getBranches, getBranchBySlug, updateBranch, deleteBranch,
+  createBranch, getBranches, getBranchImage, getBranchBySlug, updateBranch, deleteBranch,
   createSubject, getSubjects, getSubjectBySlug, updateSubject, deleteSubject,
   createTopic, getTopics, getTopicBySlug, updateTopic, deleteTopic, reorderTopics
 };

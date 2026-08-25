@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const {
   createTutorial, getTutorials, searchTutorials, getTutorialBySlug,
-  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials, reorderTutorials
+  getTutorialContentImage, updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials, reorderTutorials
 } = require('../controllers/tutorial.controller');
 const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
@@ -29,6 +29,7 @@ router.get('/author/me', protect, authorize('author', 'admin'), getAuthorTutoria
 router.post('/reorder', protect, authorize('author', 'admin'), reorderTutorials);
 router.get('/', optionalProtect, getTutorials);
 router.get('/search', searchLimiter, searchTutorials);
+router.get('/:id/content-images/:index', getTutorialContentImage);
 router.get('/:slug', optionalProtect, getTutorialBySlug);
 
 router.post('/', protect, authorize('author', 'admin'), createTutorial);

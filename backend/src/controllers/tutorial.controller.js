@@ -15,6 +15,18 @@ const { escapeRegex } = require('../utils/regex');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const { hasSupportedImageSignature } = require('../middleware/upload.middleware');
+const { invalidateHomeCache } = require('../utils/homeCache');
+
+const EMBEDDED_IMAGE_PATTERN = /data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)/g;
+
+const externalizeContentImages = (content, tutorialId) => {
+  let index = 0;
+  return content.replace(EMBEDDED_IMAGE_PATTERN, () => {
+    const imageUrl = `/api/v1/tutorials/${tutorialId}/content-images/${index}`;
+    index += 1;
+    return imageUrl;
+  });
+};
 
 const createTutorial = async (req, res, next) => {
   try {
@@ -24,6 +36,7 @@ const createTutorial = async (req, res, next) => {
     }
 
     const tutorial = await createTutorialService(req.body, req.user._id);
+    invalidateHomeCache();
     res.status(201).json(new ApiResponse(201, 'Tutorial created successfully', { tutorial }));
   } catch (err) {
     next(err);
@@ -34,6 +47,7 @@ const getTutorials = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPagination(req.query);
     const { branch, subject, topic, sort, status } = req.query;
+    const summary = req.query.summary === 'true';
 
     const filter = {};
     if (branch) {
@@ -73,15 +87,25 @@ const getTutorials = async (req, res, next) => {
     if (sort === 'oldest') sortOption = { order: 1, createdAt: 1 };
     if (sort === 'popular') sortOption = { order: 1, views: -1 };
 
-    const total = await Tutorial.countDocuments(filter);
-    const tutorials = await Tutorial.find(filter)
+    let tutorialsQuery = Tutorial.find(filter);
+    if (summary) {
+      tutorialsQuery = tutorialsQuery.select('_id title slug description branch subject topic order createdAt');
+    }
+    tutorialsQuery = tutorialsQuery
       .populate([
-        { path: 'branch subject author', select: 'name slug email avatar' },
+        { path: 'branch subject', select: 'name slug' },
+        ...(summary ? [] : [{ path: 'author', select: 'name slug email avatar' }]),
         { path: 'topic', select: 'name slug order' }
       ])
       .sort(sortOption)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+
+    const [total, tutorials] = await Promise.all([
+      Tutorial.countDocuments(filter),
+      tutorialsQuery
+    ]);
 
     const result = getPaginationResult(total, page, limit, tutorials);
     res.status(200).json(new ApiResponse(200, 'Tutorials fetched successfully', result));
@@ -145,6 +169,7 @@ const getTutorialBySlug = async (req, res, next) => {
   try {
     const identifier = req.params.slug;
     const isEditRequest = req.query.edit === 'true';
+    const isPrefetchRequest = req.query.prefetch === 'true';
     if (isEditRequest && (!req.user || !['author', 'admin'].includes(req.user.role))) {
       throw new ApiError(401, 'Authentication is required to edit tutorials');
     }
@@ -157,8 +182,13 @@ const getTutorialBySlug = async (req, res, next) => {
       };
     }
     const tutorial = await Tutorial.findOne(query)
-      .populate('branch subject topic author relatedTutorials')
-      .populate({ path: 'quiz', select: '-questions.correctAnswer' });
+      .populate('branch', 'name slug')
+      .populate('subject', 'name slug branch')
+      .populate('topic', 'name slug order subject')
+      .populate('author', 'name email avatar role')
+      .populate('relatedTutorials', 'title slug description branch subject topic')
+      .populate({ path: 'quiz', select: '-questions.correctAnswer' })
+      .lean();
 
     if (!tutorial) {
       throw new ApiError(404, 'Tutorial not found');
@@ -169,11 +199,39 @@ const getTutorialBySlug = async (req, res, next) => {
     }
 
     if (!isEditRequest) {
-      tutorial.views += 1;
-      await tutorial.save();
+      tutorial.content = externalizeContentImages(tutorial.content, tutorial._id);
+      if (!isPrefetchRequest) {
+        Tutorial.updateOne({ _id: tutorial._id }, { $inc: { views: 1 } })
+          .catch((error) => console.error(`Failed to increment tutorial views: ${error.message}`));
+      }
     }
 
     res.status(200).json(new ApiResponse(200, 'Tutorial fetched successfully', { tutorial }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getTutorialContentImage = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw new ApiError(404, 'Tutorial image not found');
+    }
+    const requestedIndex = Number.parseInt(req.params.index, 10);
+    if (!Number.isInteger(requestedIndex) || requestedIndex < 0 || requestedIndex > 50) {
+      throw new ApiError(404, 'Tutorial image not found');
+    }
+
+    const tutorial = await Tutorial.findById(req.params.id).select('content').lean();
+    if (!tutorial) throw new ApiError(404, 'Tutorial image not found');
+
+    const matches = [...tutorial.content.matchAll(EMBEDDED_IMAGE_PATTERN)];
+    const match = matches[requestedIndex];
+    if (!match) throw new ApiError(404, 'Tutorial image not found');
+
+    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.type(match[1]).send(Buffer.from(match[2], 'base64'));
   } catch (err) {
     next(err);
   }
@@ -187,6 +245,7 @@ const updateTutorial = async (req, res, next) => {
     }
 
     const tutorial = await updateTutorialService(req.params.id, req.body, req.user._id, req.user.role);
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Tutorial updated successfully', { tutorial }));
   } catch (err) {
     next(err);
@@ -212,6 +271,7 @@ const deleteTutorial = async (req, res, next) => {
       Tutorial.updateMany({ relatedTutorials: tutorial._id }, { $pull: { relatedTutorials: tutorial._id } })
     ]);
     await tutorial.deleteOne();
+    invalidateHomeCache();
     res.status(200).json(new ApiResponse(200, 'Tutorial deleted successfully', null));
   } catch (err) {
     next(err);
@@ -231,6 +291,7 @@ const publishTutorial = async (req, res, next) => {
 
     tutorial.status = tutorial.status === 'published' ? 'draft' : 'published';
     await tutorial.save();
+    invalidateHomeCache();
 
     res.status(200).json(new ApiResponse(200, `Tutorial status updated to ${tutorial.status}`, { tutorial }));
   } catch (err) {
@@ -308,5 +369,5 @@ const reorderTutorials = async (req, res, next) => {
 
 module.exports = {
   createTutorial, getTutorials, searchTutorials, getTutorialBySlug,
-  updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials, reorderTutorials
+  getTutorialContentImage, updateTutorial, deleteTutorial, publishTutorial, uploadImage, getAuthorTutorials, reorderTutorials
 };

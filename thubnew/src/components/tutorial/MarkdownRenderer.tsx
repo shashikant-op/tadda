@@ -187,7 +187,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       if (imgMatch) {
         elements.push(
           <div key={index} className="my-5">
-            <Image src={imgMatch[2]} alt={imgMatch[1]} width={1200} height={630} sizes="(max-width: 768px) 100vw, 900px" unoptimized className="rounded-xl max-h-[420px] w-full object-cover shadow-md border border-border" />
+            <Image src={imgMatch[2]} alt={imgMatch[1]} width={1200} height={630} sizes="(max-width: 768px) 100vw, 900px" unoptimized className="max-h-[420px] w-full rounded-xl object-cover" />
           </div>
         );
         return;

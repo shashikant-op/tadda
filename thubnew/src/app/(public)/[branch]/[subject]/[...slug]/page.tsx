@@ -67,12 +67,12 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
     async function loadData() {
       try {
         setIsLoading(true);
-        let tutorialData: Tutorial | null = null;
-        try {
-          tutorialData = await tutorialService.getTutorialBySlug(branch, subjectSlug, "", currentTutorialSlug);
-        } catch (err) {
-          console.error("Direct tutorial fetch failed", err);
-        }
+        const [tutorialResult, curriculumResult] = await Promise.allSettled([
+          tutorialService.getTutorialBySlug(branch, subjectSlug, "", currentTutorialSlug),
+          tutorialService.getCurriculum(branch, subjectSlug)
+        ]);
+        const tutorialData = tutorialResult.status === "fulfilled" ? tutorialResult.value : null;
+        if (tutorialResult.status === "rejected") console.error("Direct tutorial fetch failed", tutorialResult.reason);
 
         if (tutorialData) {
           setCurrentTutorial(tutorialData);
@@ -87,18 +87,8 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
           }
         }
 
-        const tutAny = tutorialData as unknown as Record<string, unknown> | null;
-        const subObj = tutAny?.subject as Record<string, unknown> | undefined;
-        // Subject slugs are only unique within a branch. Use the populated
-        // subject id so a same-slug course in another branch cannot produce
-        // an empty or incorrect curriculum.
-        const subjectIdentifier = subObj?._id
-          || subObj?.id
-          || subObj?.slug
-          || (tutAny?.subjectSlug as string)
-          || subjectSlug;
-        const res = await tutorialService.getTutorials(undefined, subjectIdentifier as string);
-        const list = Array.isArray(res) ? [...res] : [];
+        const list = curriculumResult.status === "fulfilled" ? [...curriculumResult.value] : [];
+        if (curriculumResult.status === "rejected") console.error("Curriculum fetch failed", curriculumResult.reason);
 
         // The current published tutorial is authoritative. Keep it visible in
         // the curriculum if a stale cache or temporarily inconsistent list
@@ -161,6 +151,14 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
     const currId = currentTutorial?.id || (currentTutorial as unknown as Record<string, unknown>)?._id;
     return tId === currId;
   });
+
+  useEffect(() => {
+    if (currentIndex < 0 || tutorials.length < 2) return;
+    const adjacentTutorials = [tutorials[currentIndex - 1], tutorials[currentIndex + 1]].filter(Boolean);
+    adjacentTutorials.forEach((tutorial) => {
+      if (tutorial.slug) void tutorialService.prefetchTutorial(tutorial.slug).catch(() => {});
+    });
+  }, [currentIndex, tutorials]);
 
   const handleBookmark = async () => {
     if (!currentTutorial) return;

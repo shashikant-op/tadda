@@ -5,6 +5,14 @@ const CACHE_KEY = "thub_branches_cache";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 let branchesRequest: Promise<Branch[]> | null = null;
 
+const normalizeBranches = (data: unknown): Branch[] => {
+  const list = Array.isArray(data) ? data : [];
+  return list.map((branch: Record<string, unknown>) => ({
+    ...(branch as unknown as Branch),
+    id: (branch.id || branch._id) as string,
+  }));
+};
+
 export const branchService = {
   getBranches: async (): Promise<Branch[]> => {
     if (typeof window !== "undefined") {
@@ -21,11 +29,7 @@ export const branchService = {
 
     branchesRequest = axiosInstance.get("/branches").then((res) => {
       const data = res.data.data.branches || res.data.data;
-      const list = Array.isArray(data) ? data : [];
-      const branches = list.map((b: Record<string, unknown>) => ({
-        ...(b as unknown as Branch),
-        id: (b.id || b._id) as string,
-      }));
+      const branches = normalizeBranches(data);
 
       if (typeof window !== "undefined") {
         try {

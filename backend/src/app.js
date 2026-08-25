@@ -15,6 +15,7 @@ const quizRoutes = require('./routes/quiz.routes');
 const bookmarkRoutes = require('./routes/bookmark.routes');
 const progressRoutes = require('./routes/progress.routes');
 const adminRoutes = require('./routes/admin.routes');
+const homeRoutes = require('./routes/home.routes');
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/api/v1/quizzes', quizRoutes);
 app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/v1/progress', progressRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/home', homeRoutes);
 
 // Root health check
 app.get('/', (req, res) => {

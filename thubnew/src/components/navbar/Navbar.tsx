@@ -9,8 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth.store";
-import { branchService } from "@/services/branch.service";
-import { subjectService } from "@/services/subject.service";
+import { homeService } from "@/services/home.service";
 import { tutorialService } from "@/services/tutorial.service";
 import { Branch, Subject, Tutorial } from "@/types";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
@@ -38,13 +37,19 @@ export function Navbar() {
       setIsMounted(true);
       initializeAuth();
 
-      branchService.getBranches()
+      homeService.getHome()
         .then((data) => {
-          const list = Array.isArray(data) ? data : [];
+          const list = Array.isArray(data.branches) ? data.branches : [];
           setBranches(list);
           if (list.length > 0) {
             setActiveBranch(list[0]);
           }
+          const groupedSubjects = data.courses.reduce<Record<string, Subject[]>>((groups, subject) => {
+            if (!subject.branchSlug) return groups;
+            groups[subject.branchSlug] = [...(groups[subject.branchSlug] || []), subject];
+            return groups;
+          }, {});
+          setSubjectsMap(groupedSubjects);
         })
         .catch(() => setBranches([]));
     }, 0);
@@ -57,16 +62,12 @@ export function Navbar() {
     const branchId = activeBranch.id || (activeBranch as unknown as Record<string, unknown>)._id;
     if (!branchId) return;
 
-    subjectService.getSubjects(branchId as string)
-      .then((subjects) => {
-        setSubjectsMap((previous) => ({
-          ...previous,
-          [activeBranch.slug]: Array.isArray(subjects) ? subjects : []
-        }));
-      })
-      .catch(() => {
-        setSubjectsMap((previous) => ({ ...previous, [activeBranch.slug]: [] }));
-      });
+    homeService.getHome()
+      .then((data) => setSubjectsMap((previous) => ({
+        ...previous,
+        [activeBranch.slug]: data.courses.filter((subject) => subject.branchSlug === activeBranch.slug)
+      })))
+      .catch(() => setSubjectsMap((previous) => ({ ...previous, [activeBranch.slug]: [] })));
   }, [activeBranch, subjectsMap]);
 
   const currentSubjects = activeBranch ? (subjectsMap[activeBranch.slug] || []) : [];

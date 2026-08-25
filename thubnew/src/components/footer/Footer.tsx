@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
-import { branchService } from "@/services/branch.service";
+import { homeService } from "@/services/home.service";
 import { Branch } from "@/types";
 
 export function Footer() {
   const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
-    branchService.getBranches().then((data) => setBranches(Array.isArray(data) ? data : [])).catch(() => setBranches([]));
+    homeService.getHome().then((data) => setBranches(Array.isArray(data.branches) ? data.branches : [])).catch(() => setBranches([]));
   }, []);
 
   return <footer className="bg-[var(--ink)] text-[var(--canvas)]">

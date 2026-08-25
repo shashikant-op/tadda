@@ -110,16 +110,16 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
       setError(null);
       const res = await uploadService.uploadImage(file);
       const url = res.url;
-      insertAtCursor(`![${file.name}](${url})`);
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Url = e.target?.result as string;
-        if (base64Url) {
-          insertAtCursor(`![${file.name}](${base64Url})`);
-        }
-      };
-      reader.readAsDataURL(file);
+      const altText = file.name.replace(/\.[^.]+$/, "").replace(/[\[\]]/g, "").trim() || "lesson image";
+      const cursorPosition = textareaRef.current?.selectionStart ?? content.length;
+      const beforeCursor = content.slice(0, cursorPosition);
+      const afterCursor = content.slice(cursorPosition);
+      const leadingNewline = beforeCursor.length > 0 && !beforeCursor.endsWith("\n") ? "\n" : "";
+      const trailingNewline = afterCursor.length > 0 && !afterCursor.startsWith("\n") ? "\n" : "";
+      insertAtCursor(`${leadingNewline}![${altText}](${url})${trailingNewline}`);
+    } catch (err: unknown) {
+      const uploadError = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(uploadError.response?.data?.message || uploadError.message || "Image upload failed. No image was inserted.");
     } finally {
       setUploading(false);
     }
