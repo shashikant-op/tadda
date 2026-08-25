@@ -503,7 +503,7 @@ function AuthorCreateForm() {
                     {isGeneratingImagePrompts ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
                     {isGeneratingImagePrompts ? "Analyzing lesson..." : "AI Image Prompt"}
                   </Button>
-                </div>
+                </div>x
                 <GithubMarkdownEditor
                   initialContent={content}
                   onChange={(text) => setContent(text)}

@@ -505,9 +505,9 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
             </aside>
 
             {/* Right Main Course Content (Notion Reading Area) */}
-            <main className="space-y-7 lg:col-span-9 lg:space-y-10 lg:border-l lg:border-[var(--border)] lg:pl-12 xl:pl-16">
+            <main className="space-y-7 !bg-white lg:col-span-9 lg:space-y-10 lg:border-l lg:border-[var(--border)] lg:pl-12 xl:pl-16">
               <div className="max-w-3xl space-y-4 pb-5 sm:space-y-5 sm:pb-8">
-                <h1 className="text-[2rem] font-semibold leading-[1.02] tracking-[-.05em] text-[var(--ink)] sm:text-5xl">
+                <h1 className="text-[2rem] mt-4 font-semibold leading-[1.02] tracking-[-.05em] text-[var(--ink)] sm:text-5xl">
                   {currentTutorial.title}
                 </h1>
                 {currentTutorial.description?.trim().toLowerCase() !== currentTutorial.title.trim().toLowerCase() && <p className="max-w-2xl text-sm leading-6 text-[var(--body)] sm:text-base sm:leading-7">
