@@ -503,7 +503,7 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
             </aside>
 
             {/* Right Main Course Content (Notion Reading Area) */}
-            <main className="space-y-7 !bg-white lg:col-span-9 lg:space-y-10 lg:border-l lg:border-[var(--border)] lg:pl-12 xl:pl-16">
+            <main className="space-y-7 !bg-white lg:col-span-9 p-x-2 lg:space-y-10 lg:border-l lg:border-[var(--border)] lg:pl-12 xl:pl-16">
               <div className="max-w-3xl space-y-4 pb-5 sm:space-y-5 sm:pb-8">
                 <h1 className="text-[2rem] mt-4 font-semibold leading-[1.02] tracking-[-.05em] text-[var(--ink)] sm:text-5xl">
                   {currentTutorial.title}
@@ -530,7 +530,7 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
               </div>
 
               {isEditingContent ? <section className="max-w-3xl space-y-4" aria-label="Edit lesson content">
-                {contentEditError && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{contentEditError}</div>}
+                {contentEditError && <div role="alert" className="rounded-lg  !bg-red-900 border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{contentEditError}</div>}
                 <GithubMarkdownEditor initialContent={currentTutorial.content} onChange={setEditedContent} placeholder="Write the lesson content in Markdown..." />
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button type="button" variant="outline" onClick={cancelContentEditing} disabled={isSavingContent}>
