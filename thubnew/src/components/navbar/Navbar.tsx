@@ -126,7 +126,7 @@ export function Navbar() {
       const matchingSubjects = currentSubjects.filter((candidate) => candidate.slug === subject.slug);
       const groups = await Promise.all(matchingSubjects.map((candidate) => {
         const subjectId = candidate.id || (candidate as unknown as Record<string, unknown>)._id;
-        return tutorialService.getTutorials(undefined, subjectId as string);
+        return tutorialService.getTutorials(undefined, subjectId as string, false, true);
       }));
       const firstTutorial = groups.flat().find((tutorial) => Boolean(tutorial.slug));
       router.push(firstTutorial ? `${courseUrl}/${firstTutorial.slug}` : courseUrl);

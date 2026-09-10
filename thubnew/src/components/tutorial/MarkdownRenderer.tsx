@@ -22,7 +22,7 @@ function parseInline(text: string): string {
   return DOMPurify.sanitize(rendered);
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+function MarkdownContent({ content }: MarkdownRendererProps) {
   if (!content) return null;
 
   // Older lessons may contain complete HTML documents, while current Markdown can
@@ -207,3 +207,6 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
 
   return <div className="prose prose-neutral dark:prose-invert max-w-none">{elements}</div>;
 }
+
+// Sidebar, bookmark and authentication updates do not change the lesson body.
+export const MarkdownRenderer = React.memo(MarkdownContent);

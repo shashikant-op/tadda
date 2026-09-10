@@ -48,10 +48,11 @@ export const tutorialService = {
     return branches;
   },
 
-  getTutorials: async (branchId?: string, subjectSlug?: string, includeDrafts = false): Promise<Tutorial[]> => {
+  getTutorials: async (branchId?: string, subjectSlug?: string, includeDrafts = false, summary = false): Promise<Tutorial[]> => {
     const params = new URLSearchParams({ limit: "100", page: "1" });
     if (branchId) params.set("branch", branchId);
     if (subjectSlug) params.set("subject", subjectSlug);
+    if (summary) params.set("summary", "true");
     if (includeDrafts) params.set("status", "all");
 
     const firstResponse = await axiosInstance.get(`/tutorials?${params.toString()}`);
@@ -60,12 +61,17 @@ export const tutorialService = {
     const combined = Array.isArray(firstList) ? [...firstList] : [];
     const totalPages = Number(firstData?.pagination?.totalPages || 1);
 
-    for (let page = 2; page <= totalPages; page += 1) {
-      params.set("page", String(page));
-      const response = await axiosInstance.get(`/tutorials?${params.toString()}`);
-      const pageData = response.data.data;
-      const pageList = Array.isArray(pageData) ? pageData : (pageData?.tutorials || pageData?.data || []);
-      if (Array.isArray(pageList)) combined.push(...pageList);
+    // Bound concurrency so large libraries do not create a request burst.
+    for (let start = 2; start <= totalPages; start += 3) {
+      const pages = await Promise.all(Array.from({ length: Math.min(3, totalPages - start + 1) }, async (_, index) => {
+        const pageParams = new URLSearchParams(params);
+        pageParams.set("page", String(start + index));
+        const response = await axiosInstance.get(`/tutorials?${pageParams.toString()}`);
+        const data = response.data.data;
+        const list = Array.isArray(data) ? data : (data?.tutorials || data?.data || []);
+        return Array.isArray(list) ? list : [];
+      }));
+      combined.push(...pages.flat());
     }
 
     const tutorials = (combined as Record<string, unknown>[]).map((t) => ({
@@ -83,18 +89,9 @@ export const tutorialService = {
     const existing = curriculumRequests.get(key);
     if (existing) return existing;
 
-    const params = new URLSearchParams({
-      branch: branchSlug,
-      subject: subjectSlug,
-      summary: "true",
-      limit: "100",
-      page: "1",
-    });
-    const request = axiosInstance.get(`/tutorials?${params.toString()}`)
-      .then((res) => {
-        const data = res.data.data;
-        const list = Array.isArray(data) ? data : (data?.tutorials || data?.data || []);
-        const tutorials = (Array.isArray(list) ? list : []).map((tutorial: Record<string, unknown>) => normalizeTutorial(tutorial));
+    const request = tutorialService.getTutorials(branchSlug, subjectSlug, false, true)
+      .then((list) => {
+        const tutorials = list.map((tutorial) => normalizeTutorial(tutorial as unknown as Record<string, unknown>));
         curriculumCache.set(key, { data: tutorials, expiresAt: Date.now() + CACHE_TTL });
         return tutorials;
       })

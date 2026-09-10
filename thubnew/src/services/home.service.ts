@@ -8,6 +8,9 @@ export interface HomeData {
   tutorials: Tutorial[];
 }
 
+const HOME_CACHE_TTL = 60 * 1000;
+let homeCache: { data: HomeData; expiresAt: number } | null = null;
+
 let homeRequest: Promise<HomeData> | null = null;
 
 const normalizeImageUrl = (image?: string) => {
@@ -17,6 +20,7 @@ const normalizeImageUrl = (image?: string) => {
 
 export const homeService = {
   getHome: (): Promise<HomeData> => {
+    if (homeCache && homeCache.expiresAt > Date.now()) return Promise.resolve(homeCache.data);
     if (homeRequest) return homeRequest;
 
     homeRequest = axiosInstance.get('/home')
@@ -37,6 +41,10 @@ export const homeService = {
             id: tutorial.id || (tutorial as Tutorial & { _id?: string })._id || ''
           }))
         };
+      })
+      .then((data) => {
+        homeCache = { data, expiresAt: Date.now() + HOME_CACHE_TTL };
+        return data;
       })
       .finally(() => {
         homeRequest = null;

@@ -40,7 +40,7 @@ export default function DynamicBranchPage({ params }: PageProps) {
         if (branchId) {
           const [subjectData, tutorialData] = await Promise.all([
             subjectService.getSubjects(branchId as string),
-            tutorialService.getTutorials(branchId as string),
+            tutorialService.getTutorials(branchId as string, undefined, false, true),
           ]);
           setSubjects(Array.isArray(subjectData) ? subjectData : []);
           setTutorials(Array.isArray(tutorialData) ? tutorialData : []);

@@ -45,7 +45,7 @@ export default function CourseEndpointPage({ params }: PageProps) {
         const matchingSubjects = branchSubjects.filter((record) => record.slug === subject);
         const tutorialGroups = await Promise.all(matchingSubjects.map((record) => {
           const subjectId = record.id || (record as unknown as Record<string, unknown>)._id;
-          return tutorialService.getTutorials(undefined, subjectId as string);
+          return tutorialService.getTutorials(undefined, subjectId as string, false, true);
         }));
         if (!active) return;
 

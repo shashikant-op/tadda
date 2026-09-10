@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadService } from "@/services/upload.service";
+import { uploadService, uploadStatusLabel, type UploadStatus } from "@/services/upload.service";
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 
 interface EditorImageUploadProps {
@@ -11,6 +11,7 @@ interface EditorImageUploadProps {
 
 export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ stage: "preparing", percent: 0 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -18,6 +19,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
   if (!isOpen) return null;
 
   const handleFileSelect = async (file: File) => {
+    if (uploading) return;
     if (!file.type.startsWith("image/")) {
       setError("Please select a valid image file (jpg, png, webp).");
       return;
@@ -30,7 +32,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
     try {
       setUploading(true);
       setError(null);
-      const res = await uploadService.uploadImage(file);
+      const res = await uploadService.uploadImage(file, setUploadStatus);
       const url = res.url;
       setPreviewUrl(url);
     } catch (err: unknown) {
@@ -106,7 +108,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
             {uploading ? (
               <div className="flex flex-col items-center space-y-2 py-4">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <p className="text-xs font-medium text-muted-foreground">Uploading to Cloudinary securely...</p>
+                <p className="text-xs font-medium text-muted-foreground">{uploadStatusLabel(uploadStatus)}</p>
               </div>
             ) : (
               <>

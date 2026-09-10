@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
-import { uploadService } from "@/services/upload.service";
+import { uploadService, uploadStatusLabel, type UploadStatus } from "@/services/upload.service";
 import TurndownService from "turndown";
 // @ts-expect-error no types available
 import * as gfm from "turndown-plugin-gfm";
@@ -74,6 +74,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   const content = initialContent;
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ stage: "preparing", percent: 0 });
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editablePreviewRef = useRef<HTMLDivElement>(null);
@@ -101,6 +102,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   };
 
   const handleFileUpload = async (file: File) => {
+    if (uploading) return;
     if (!file.type.startsWith("image/")) {
       setError("Please drop/select a valid image file.");
       return;
@@ -108,7 +110,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
     try {
       setUploading(true);
       setError(null);
-      const res = await uploadService.uploadImage(file);
+      const res = await uploadService.uploadImage(file, setUploadStatus);
       const url = res.url;
       const altText = file.name.replace(/\.[^.]+$/, "").replace(/[\[\]]/g, "").trim() || "lesson image";
       const cursorPosition = textareaRef.current?.selectionStart ?? content.length;
@@ -365,7 +367,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
       {uploading && (
         <div className="p-2 bg-primary/10 border-b border-primary/20 text-primary text-xs flex items-center space-x-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Uploading image to Cloudinary & inserting markdown...</span>
+          <span>{uploadStatusLabel(uploadStatus)}</span>
         </div>
       )}
 

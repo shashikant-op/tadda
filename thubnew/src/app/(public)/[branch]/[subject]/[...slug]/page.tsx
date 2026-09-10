@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from "react";
 import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/navbar/Navbar";
 import { Footer } from "@/components/footer/Footer";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
@@ -15,10 +16,10 @@ import { Tutorial } from "@/types";
 import { tutorialService } from "@/services/tutorial.service";
 import { bookmarkService } from "@/services/bookmark.service";
 import { progressService } from "@/services/progress.service";
-import { LoginModal } from "@/components/auth/LoginModal";
+const LoginModal = dynamic(() => import("@/components/auth/LoginModal").then((module) => module.LoginModal));
 import { useAuthStore } from "@/store/auth.store";
 import { topicService } from "@/services/topic.service";
-import { GithubMarkdownEditor } from "@/components/editor/GithubMarkdownEditor";
+const GithubMarkdownEditor = dynamic(() => import("@/components/editor/GithubMarkdownEditor").then((module) => module.GithubMarkdownEditor), { loading: () => <p role="status">Loading editor…</p> });
 
 interface PageProps {
   params: Promise<{
@@ -30,6 +31,10 @@ interface PageProps {
 
 export default function CatchAllTutorialPage({ params }: PageProps) {
   const resolvedParams = use(params);
+  return <TutorialPage key={`${resolvedParams.branch}/${resolvedParams.subject}/${resolvedParams.slug.join("/")}`} resolvedParams={resolvedParams} />;
+}
+
+function TutorialPage({ resolvedParams }: { resolvedParams: Awaited<PageProps["params"]> }) {
   const router = useRouter();
   const { branch, subject: subjectSlug, slug: slugSegments } = resolvedParams;
   const { initializeAuth, user } = useAuthStore();
@@ -64,57 +69,35 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
   const [contentEditError, setContentEditError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        const [tutorialResult, curriculumResult] = await Promise.allSettled([
-          tutorialService.getTutorialBySlug(branch, subjectSlug, "", currentTutorialSlug),
-          tutorialService.getCurriculum(branch, subjectSlug)
-        ]);
-        const tutorialData = tutorialResult.status === "fulfilled" ? tutorialResult.value : null;
-        if (tutorialResult.status === "rejected") console.error("Direct tutorial fetch failed", tutorialResult.reason);
+    let active = true;
 
-        if (tutorialData) {
-          setCurrentTutorial(tutorialData);
-
-          const tutorialRecord = tutorialData as unknown as Record<string, unknown>;
-          const populatedBranch = tutorialRecord.branch as Record<string, unknown> | undefined;
-          const populatedSubject = tutorialRecord.subject as Record<string, unknown> | undefined;
-          const canonicalBranch = populatedBranch?.slug as string | undefined;
-          const canonicalSubject = populatedSubject?.slug as string | undefined;
-          if (canonicalBranch && canonicalSubject && (canonicalBranch !== branch || canonicalSubject !== subjectSlug)) {
-            router.replace(`/${canonicalBranch}/${canonicalSubject}/${tutorialData.slug}`);
-          }
+    // Render the lesson as soon as it arrives; the sidebar loads independently.
+    void tutorialService.getTutorialBySlug(branch, subjectSlug, "", currentTutorialSlug)
+      .then((tutorial) => {
+        if (!active) return;
+        setCurrentTutorial(tutorial);
+        setTutorials((list) => list.some((item) => item.slug === tutorial.slug) ? list : [tutorial, ...list]);
+        const record = tutorial as unknown as Record<string, unknown>;
+        const canonicalBranch = (record.branch as { slug?: string } | undefined)?.slug;
+        const canonicalSubject = (record.subject as { slug?: string } | undefined)?.slug;
+        if (canonicalBranch && canonicalSubject && (canonicalBranch !== branch || canonicalSubject !== subjectSlug)) {
+          router.replace(`/${canonicalBranch}/${canonicalSubject}/${tutorial.slug}`);
         }
+      })
+      .catch((error) => console.error("Direct tutorial fetch failed", error))
+      .finally(() => { if (active) setIsLoading(false); });
 
-        const list = curriculumResult.status === "fulfilled" ? [...curriculumResult.value] : [];
-        if (curriculumResult.status === "rejected") console.error("Curriculum fetch failed", curriculumResult.reason);
+    void tutorialService.getCurriculum(branch, subjectSlug)
+      .then((list) => {
+        if (!active) return;
+        setTutorials((previous) => {
+          const current = previous.find((item) => item.slug === currentTutorialSlug);
+          return current && !list.some((item) => item.slug === currentTutorialSlug) ? [current, ...list] : list;
+        });
+      })
+      .catch((error) => console.error("Curriculum fetch failed", error));
 
-        // The current published tutorial is authoritative. Keep it visible in
-        // the curriculum if a stale cache or temporarily inconsistent list
-        // response omits it.
-        if (tutorialData) {
-          const currentId = tutorialData.id || (tutorialData as unknown as Record<string, unknown>)._id;
-          const isIncluded = list.some((tutorial) => {
-            const tutorialId = tutorial.id || (tutorial as unknown as Record<string, unknown>)._id;
-            return tutorialId === currentId || tutorial.slug === tutorialData?.slug;
-          });
-          if (!isIncluded) list.unshift(tutorialData);
-        }
-        setTutorials(list);
-        setTopicOrderOverride(null);
-
-        if (!tutorialData && list.length > 0) {
-          const found = list.find((t: Tutorial) => t.slug === currentTutorialSlug);
-          setCurrentTutorial(found || list[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load tutorial data", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
+    return () => { active = false; };
   }, [branch, subjectSlug, currentTutorialSlug, router]);
 
   const topicsMap = new Map<string, { topicId: string; topicName: string; topicOrder: number; tutorials: Tutorial[] }>();
@@ -604,7 +587,7 @@ export default function CatchAllTutorialPage({ params }: PageProps) {
       </div>
 
       <Footer />
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onSuccess={handleLoginSuccess} />
+      {isLoginModalOpen && <LoginModal isOpen onClose={() => setIsLoginModalOpen(false)} onSuccess={handleLoginSuccess} />}
     </div>
   );
 }
