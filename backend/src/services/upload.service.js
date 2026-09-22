@@ -17,7 +17,7 @@ const providerError = (error) => {
   return new ApiError(502, 'Image storage is temporarily unavailable. Please try again.');
 };
 
-const uploadToCloudinary = (fileBuffer) => {
+const uploadToCloudinary = (fileBuffer, mimeType = 'image/jpeg') => {
   const config = cloudinary.config();
   if (!config.cloud_name || !config.api_key || !config.api_secret) {
     return Promise.reject(new ApiError(503, 'Image storage is not configured. Please configure Cloudinary on the server.'));
@@ -40,7 +40,15 @@ const uploadToCloudinary = (fileBuffer) => {
 
     try {
       uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'tutorialsadda', resource_type: 'image', timeout: UPLOAD_TIMEOUT_MS },
+        {
+          folder: 'tutorialsadda/editor',
+          resource_type: 'image',
+          timeout: UPLOAD_TIMEOUT_MS,
+          overwrite: false,
+          unique_filename: true,
+          use_filename: false,
+          context: `source=editor|mime=${mimeType}`
+        },
         (error, result) => {
           if (error) finish(providerError(error));
           else if (!result?.secure_url) finish(new ApiError(502, 'Image upload returned no URL'));

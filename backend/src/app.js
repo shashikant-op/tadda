@@ -21,16 +21,22 @@ const app = express();
 
 // Security & Middlewares
 app.use(helmet());
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://10.84.73.241:3000',
-  process.env.CLIENT_URL
+  'https://tutorialsadda.vercel.app',
+  ...configuredOrigins
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    const normalizedOrigin = origin?.replace(/\/$/, '');
+    if (!origin || allowedOrigins.includes(normalizedOrigin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

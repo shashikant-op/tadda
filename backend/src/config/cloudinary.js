@@ -15,6 +15,10 @@ const explicitCredentials = Object.fromEntries(
 
 if (Object.keys(explicitCredentials).length > 0) {
   cloudinary.config(explicitCredentials);
+} else if (process.env.CLOUDINARY_URL?.trim()) {
+  // Passing the URL explicitly makes configuration deterministic on hosts that
+  // initialise the SDK before all environment variables have been inspected.
+  cloudinary.config(process.env.CLOUDINARY_URL.trim());
 }
 
 module.exports = cloudinary;
