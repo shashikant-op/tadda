@@ -57,13 +57,20 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
     }
   };
 
+  const resetUpload = () => {
+    setError(null);
+    setPreviewUrl(null);
+    setUploadStatus({ stage: "preparing", percent: 0 });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ink)]/50 backdrop-blur-xs">
-      <div className="bg-card border rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
+      <div role="dialog" aria-modal="true" aria-labelledby="image-upload-title" className="w-[calc(100%-2rem)] max-w-lg space-y-5 rounded-[1.35rem] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl sm:p-6">
         <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-base flex items-center space-x-2">
-            <ImageIcon className="h-4 w-4 text-emerald-600" />
-            <span>Upload Course Image</span>
+          <h3 id="image-upload-title" className="font-semibold text-base flex items-center space-x-2">
+            <ImageIcon className="h-4 w-4 text-[var(--primary)]" />
+            <span>Add an image</span>
           </h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
@@ -71,8 +78,9 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
         </div>
 
         {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs">
-            {error}
+          <div role="alert" className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-3 text-xs text-[var(--danger)]">
+            <p>{error}</p>
+            <button type="button" onClick={resetUpload} className="mt-2 font-semibold underline underline-offset-2">Choose another image</button>
           </div>
         )}
 
@@ -82,7 +90,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewUrl} alt="Uploaded Preview" className="max-h-60 object-contain" />
               <button
-                onClick={() => setPreviewUrl(null)}
+                onClick={resetUpload}
                 className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1 rounded-full shadow hover:bg-destructive/90"
                 title="Delete Image"
               >
@@ -90,7 +98,7 @@ export function EditorImageUpload({ isOpen, onClose, onInsertImage }: EditorImag
               </button>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" size="sm" onClick={() => setPreviewUrl(null)}>
+              <Button variant="outline" size="sm" onClick={resetUpload}>
                 Upload Different
               </Button>
               <Button size="sm" onClick={handleConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-[var(--primary-foreground)]">

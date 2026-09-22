@@ -140,14 +140,14 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--canvas)]/90 backdrop-blur-xl">
-      <div className="site-container flex h-16 items-center justify-between">
+    <header className="sticky top-3 z-50 mx-auto w-[min(calc(100%-1rem),80rem)] rounded-[1.45rem] border border-white/50 bg-[#a9cbbd]/90 shadow-[0_14px_34px_-24px_rgba(8,56,40,.5)] backdrop-blur-xl lg:top-5">
+      <div className="flex h-16 items-center justify-between px-4 lg:px-7">
         {/* ================= MOBILE SECTION ================= */}
         {/* This section renders only on mobile screens (md:hidden) with logo, category link, and login section without dropdowns */}
         <div className="flex lg:hidden items-center justify-between w-full">
           <Link href="/" className="flex items-center space-x-2 shrink-0">
             <Image src="/logopng.png" alt="TutorialsAdda Logo" width={32} height={32} className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-xs tracking-[-.02em] text-[var(--ink)]">TutorialsAdda</span>
+            <span className="font-semibold text-xs tracking-[-.02em] text-[#071a33]">TutorialsHub</span>
           </Link>
 
           <div className="flex items-center space-x-2.5 shrink-0">
@@ -180,7 +180,7 @@ export function Navbar() {
         <div className="hidden lg:flex items-center">
           <Link href="/" className="flex items-center space-x-2.5">
             <Image src="/logopng.png" alt="TutorialsAdda Logo" width={36} height={36} className="h-9 w-9 rounded-[10px] object-cover" />
-            <span className="font-semibold text-base tracking-[-.025em] text-[var(--ink)]">TutorialsAdda</span>
+            <span className="font-semibold text-lg tracking-[-.035em] text-[#071a33]">TutorialsHub</span>
           </Link>
         </div>
 
@@ -273,7 +273,8 @@ export function Navbar() {
             )}
           </div>
 
-          <Link href="/search" className="transition-colors hover:text-[var(--ink)] text-[var(--body)]">Search</Link>
+          <Link href="/search" className="transition-colors hover:text-[var(--ink)] text-[var(--body)]">Pathways</Link>
+          <Link href="/search" className="transition-colors hover:text-[var(--ink)] text-[var(--body)]">Courses</Link>
         </nav>
 
         {/* Global Search Bar & Auth Actions */}
@@ -284,8 +285,8 @@ export function Navbar() {
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--body)]" />
               <Input
                 aria-label="Search documentation"
-                placeholder="Search documentation..."
-                className="h-9 w-full rounded-lg border-[var(--border)] bg-[var(--soft)]/70 pl-9 text-xs focus-visible:border-[var(--primary)] focus-visible:ring-0"
+                placeholder="What do you want to learn?"
+                className="h-10 w-full rounded-full border-white/70 bg-[#f4f7ff] pl-9 text-xs focus-visible:border-[var(--primary)] focus-visible:ring-0"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -359,10 +360,7 @@ export function Navbar() {
           ) : (
             <div className="flex items-center space-x-2">
               <Link href="/auth/login">
-                <Button variant="ghost" size="sm" className="h-8 text-xs font-medium text-[var(--body)] hover:text-[var(--ink)]">Sign In</Button>
-              </Link>
-              <Link href="/auth/register">
-                <Button size="sm" className="h-9 rounded-lg bg-[var(--primary)] px-4 text-xs font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary)] active:scale-[.98]">Get started</Button>
+                <Button size="sm" className="h-10 rounded-full bg-[#007a57] px-5 text-xs font-medium text-white hover:bg-[#00694b]">Sign In</Button>
               </Link>
             </div>
           )}

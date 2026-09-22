@@ -11,7 +11,10 @@ export const uploadService = {
     formData.append("image", image);
     onProgress?.({ stage: "uploading", percent: 0 });
     const res = await axiosInstance.post("/tutorials/upload/image", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      // Do not set Content-Type manually: the browser must add the multipart
+      // boundary or multer will receive an unreadable request body.
+      headers: { "Content-Type": undefined },
+      timeout: 45000,
       onUploadProgress: ({ loaded, total }) => {
         const percent = total ? Math.min(100, Math.round(loaded * 100 / total)) : 0;
         onProgress?.({ stage: percent === 100 ? "processing" : "uploading", percent });
