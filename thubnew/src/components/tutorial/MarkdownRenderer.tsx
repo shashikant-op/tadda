@@ -27,12 +27,12 @@ function MarkdownContent({ content }: MarkdownRendererProps) {
 
   // Older lessons may contain complete HTML documents, while current Markdown can
   // intentionally contain safe inline HTML such as <u> for underlined text.
-  const isHtml = /^\s*<(?:div|p|h[1-6]|ul|ol|blockquote|pre|table|section|article)\b/i.test(content);
+  const isHtml = /^\s*<(?:div|p|h[1-6]|ul|ol|blockquote|pre|table|section|article|img)\b/i.test(content);
   if (isHtml) {
     return (
       <div
-        className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed space-y-4 text-foreground"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
+        className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed space-y-4 text-foreground [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, { ADD_ATTR: ["style", "width", "height"] }) }}
       />
     );
   }
@@ -187,8 +187,21 @@ function MarkdownContent({ content }: MarkdownRendererProps) {
       if (imgMatch) {
         elements.push(
           <div key={index} className="my-5">
-            <Image src={imgMatch[2]} alt={imgMatch[1]} width={1200} height={630} sizes="(max-width: 768px) 100vw, 900px" unoptimized className="max-h-[420px] w-full rounded-xl object-cover" />
+            <img src={imgMatch[2]} alt={imgMatch[1]} className="rounded-xl max-w-full h-auto" style={{ width: "100%", maxHeight: 420, objectFit: "cover" }} />
           </div>
+        );
+        return;
+      }
+
+      // HTML <img> tag with optional width/height/style (persisted after Canva-style resize)
+      const htmlImgLine = line.trim();
+      if (/^<img\s[^>]*src=["'][^"']+["'][^>]*\/?>$/i.test(htmlImgLine)) {
+        const sanitized = DOMPurify.sanitize(htmlImgLine, {
+          ALLOWED_TAGS: ["img"],
+          ALLOWED_ATTR: ["src", "alt", "width", "height", "style", "class"],
+        });
+        elements.push(
+          <div key={index} className="my-5" dangerouslySetInnerHTML={{ __html: sanitized }} />
         );
         return;
       }

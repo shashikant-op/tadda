@@ -21,6 +21,34 @@ turndownService.addRule("safeStyledSpan", {
   filter: (node) => node.nodeName === "SPAN" && Boolean((node as HTMLElement).getAttribute("style")),
   replacement: (content, node) => `<span style="${(node as HTMLElement).getAttribute("style")}">${content}</span>`,
 });
+turndownService.addRule("resizedImage", {
+  filter: "img",
+  replacement: (_content, node) => {
+    const img = node as HTMLImageElement;
+    const src = img.getAttribute("src") || "";
+    if (!src) return "";
+    const alt = img.getAttribute("alt") || "";
+    const width = img.getAttribute("width") || img.style.width || "";
+    const height = img.getAttribute("height") || img.style.height || "";
+    const hasSize = Boolean(width || height) && width !== "100%" ;
+    // Also check inline style contains width/height not default
+    const styleWidth = img.style.width;
+    const styleHeight = img.style.height;
+    const shouldKeepHtml = hasSize || (styleWidth && styleWidth !== "100%" && styleWidth !== "") || (styleHeight && styleHeight !== "auto" && styleHeight !== "");
+    if (shouldKeepHtml) {
+      const wAttr = width ? ` width="${width.replace(/[^0-9.%px]/g, "") || width}"` : "";
+      const hAttr = height && height !== "auto" ? ` height="${height.replace(/[^0-9.%px]/g, "") || height}"` : "";
+      const styleParts: string[] = [];
+      if (styleWidth) styleParts.push(`width:${styleWidth}`);
+      if (styleHeight && styleHeight !== "auto") styleParts.push(`height:${styleHeight}`);
+      else if (styleWidth) styleParts.push(`height:auto`);
+      const styleAttr = styleParts.length ? ` style="${styleParts.join(";")}"` : "";
+      return `\n\n<img src="${src}" alt="${alt.replace(/"/g, "&quot;")}"${wAttr}${hAttr}${styleAttr} />\n\n`;
+    }
+    return `![${alt}](${src})`;
+  },
+});
+
 turndownService.addRule("previewFencedCode", {
   filter: (node) => node instanceof HTMLElement && node.hasAttribute("data-code-language"),
   replacement: (_content, node) => {
@@ -129,8 +157,8 @@ const normalizeOfficeHtml = (html: string): string => {
 export function richTextHtmlToMarkdown(html: string): string {
   const sanitized = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
-    ADD_TAGS: ["mark", "sub", "sup"],
-    ADD_ATTR: ["style", "color", "size", "start"],
+    ADD_TAGS: ["mark", "sub", "sup", "img"],
+    ADD_ATTR: ["style", "color", "size", "start", "src", "alt", "width", "height"],
   });
   const normalized = normalizeOfficeHtml(sanitized);
   return turndownService.turndown(normalized)

@@ -145,7 +145,15 @@ export function Editor({ initialContent = "", onChange, tutorialId, placeholder 
         </div>
       ) : (
         <div className="p-6">
-          <EditorPreview contentHtml={htmlContent} />
+          <EditorPreview
+            contentHtml={htmlContent}
+            onChange={(html) => {
+              setHtmlContent(html);
+              const json = editor?.getJSON() ?? jsonContent;
+              setJsonContent(json);
+              if (onChange) onChange(html, json);
+            }}
+          />
         </div>
       )}
 

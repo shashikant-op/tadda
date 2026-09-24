@@ -1,57 +1,140 @@
-import React, { useState, useRef, useEffect } from "react";
+"use client";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { sanitizeHtml } from "./lib/editor";
-import { Eye, ShieldCheck, X, Sliders } from "lucide-react";
+import { Eye, ShieldCheck } from "lucide-react";
 
 interface EditorPreviewProps {
   contentHtml: string;
+  onChange?: (html: string) => void;
 }
 
-export function EditorPreview({ contentHtml }: EditorPreviewProps) {
+type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+export function EditorPreview({ contentHtml, onChange }: EditorPreviewProps) {
   const sanitized = sanitizeHtml(contentHtml);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
-  const [imgWidth, setImgWidth] = useState<string>("100%");
-  const [imgHeight, setImgHeight] = useState<string>("auto");
+  const [overlayStyle, setOverlayStyle] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const resizingRef = useRef<{ handle: ResizeHandle; startX: number; startY: number; startW: number; startH: number } | null>(null);
+
+  const updateOverlayPosition = useCallback(() => {
+    if (!selectedImg || !wrapperRef.current) return;
+    const container = wrapperRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const imgRect = selectedImg.getBoundingClientRect();
+    setOverlayStyle({
+      left: imgRect.left - containerRect.left + container.scrollLeft,
+      top: imgRect.top - containerRect.top + container.scrollTop,
+      width: imgRect.width,
+      height: imgRect.height,
+    });
+  }, [selectedImg]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (!selectedImg) {
+      setOverlayStyle(null);
+      return;
+    }
+    updateOverlayPosition();
+    const onScrollOrResize = () => updateOverlayPosition();
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    return () => {
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+    };
+  }, [selectedImg, updateOverlayPosition, sanitized]);
 
-    const handleImageClick = (e: MouseEvent) => {
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target && target.tagName === "IMG") {
+      if (target.tagName === "IMG") {
         e.preventDefault();
-        const img = target as HTMLImageElement;
-        setSelectedImg(img);
-        setImgWidth(img.style.width || img.getAttribute("width") || `${img.naturalWidth || img.clientWidth || 400}px`);
-        setImgHeight(img.style.height || img.getAttribute("height") || "auto");
-      } else if (!target.closest(".image-resize-toolbar")) {
+        e.stopPropagation();
+        setSelectedImg(target as HTMLImageElement);
+        setTimeout(() => updateOverlayPosition(), 0);
+      } else {
+        const overlay = document.querySelector("[data-canva-overlay-preview]");
+        if (overlay && overlay.contains(target)) return;
         setSelectedImg(null);
       }
     };
+    el.addEventListener("click", handleClick);
+    return () => el.removeEventListener("click", handleClick);
+  }, [updateOverlayPosition]);
 
-    container.addEventListener("click", handleImageClick);
-    return () => container.removeEventListener("click", handleImageClick);
-  }, []);
+  const syncToParent = useCallback(() => {
+    if (!contentRef.current || !onChange) return;
+    // contentRef innerHTML is the live edited HTML with resized img styles
+    const html = contentRef.current.innerHTML;
+    onChange(html);
+  }, [onChange]);
 
-  const updateImageSize = (w: string, h: string) => {
-    setImgWidth(w);
-    setImgHeight(h);
-    if (selectedImg) {
-      selectedImg.style.width = w;
-      selectedImg.style.height = h;
-      if (w) selectedImg.setAttribute("width", w);
-      if (h && h !== "auto") selectedImg.setAttribute("height", h);
-      else selectedImg.removeAttribute("height");
-    }
+  const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
+    if (!selectedImg) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = selectedImg.getBoundingClientRect();
+    resizingRef.current = {
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: rect.width,
+      startH: rect.height,
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      if (!resizingRef.current || !selectedImg) return;
+      const { handle: h, startX, startY, startW, startH } = resizingRef.current;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      let newW = startW;
+      let newH = startH;
+      if (h.includes("e")) newW = startW + dx;
+      if (h.includes("w")) newW = startW - dx;
+      if (h.includes("s")) newH = startH + dy;
+      if (h.includes("n")) newH = startH - dy;
+      newW = Math.max(40, Math.round(newW));
+      newH = Math.max(40, Math.round(newH));
+      selectedImg.style.width = `${newW}px`;
+      selectedImg.style.height = `${newH}px`;
+      selectedImg.style.maxWidth = "none";
+      selectedImg.setAttribute("width", String(newW));
+      selectedImg.setAttribute("height", String(newH));
+      selectedImg.style.objectFit = "contain";
+      if (wrapperRef.current) {
+        const containerRect = wrapperRef.current.getBoundingClientRect();
+        const imgRect = selectedImg.getBoundingClientRect();
+        setOverlayStyle({
+          left: imgRect.left - containerRect.left + wrapperRef.current.scrollLeft,
+          top: imgRect.top - containerRect.top + wrapperRef.current.scrollTop,
+          width: imgRect.width,
+          height: imgRect.height,
+        });
+      }
+    };
+
+    const onUp = () => {
+      resizingRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      syncToParent();
+      setTimeout(() => updateOverlayPosition(), 0);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   return (
-    <div className="border rounded-xl bg-card p-8 min-h-[400px] shadow-xs space-y-4 relative">
+    <div className="border rounded-xl bg-card p-8 min-h-[400px] shadow-xs space-y-4">
       <div className="flex items-center justify-between border-b pb-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
         <span className="flex items-center space-x-2">
           <Eye className="h-4 w-4 text-primary" />
-          <span>Live Production Preview (Click any image to resize width & height)</span>
+          <span>Live Production Preview — Click image to resize</span>
         </span>
         <span className="flex items-center space-x-1 text-emerald-600">
           <ShieldCheck className="h-4 w-4" />
@@ -59,89 +142,64 @@ export function EditorPreview({ contentHtml }: EditorPreviewProps) {
         </span>
       </div>
 
-      {selectedImg && (
-        <div className="image-resize-toolbar sticky top-4 z-20 flex flex-wrap items-center gap-3 bg-card border border-emerald-500 shadow-xl rounded-xl p-3 text-xs">
-          <div className="flex items-center space-x-1.5 font-semibold text-emerald-700">
-            <Sliders className="h-4 w-4" />
-            <span>Resize Image</span>
-          </div>
+      <div ref={wrapperRef} className="relative">
+        <div
+          ref={contentRef}
+          className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed [&_img]:cursor-pointer [&_img]:max-w-full [&_img]:select-none [&_img]:rounded-xl"
+          dangerouslySetInnerHTML={{ __html: sanitized }}
+        />
 
-          <div className="flex items-center space-x-1">
-            <span className="text-muted-foreground font-medium">Width:</span>
-            <input
-              type="text"
-              value={imgWidth}
-              onChange={(e) => updateImageSize(e.target.value, imgHeight)}
-              className="w-20 px-2 py-1 border rounded text-xs bg-background"
-              placeholder="e.g. 100%, 400px"
-            />
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <span className="text-muted-foreground font-medium">Height:</span>
-            <input
-              type="text"
-              value={imgHeight}
-              onChange={(e) => updateImageSize(imgWidth, e.target.value)}
-              className="w-20 px-2 py-1 border rounded text-xs bg-background"
-              placeholder="e.g. auto, 300px"
-            />
-          </div>
-
-          <div className="flex items-center space-x-1 border-l pl-3">
-            <button
-              type="button"
-              onClick={() => updateImageSize("25%", "auto")}
-              className="px-2 py-1 bg-muted hover:bg-muted/80 rounded text-[11px] font-medium"
-            >
-              25%
-            </button>
-            <button
-              type="button"
-              onClick={() => updateImageSize("50%", "auto")}
-              className="px-2 py-1 bg-muted hover:bg-muted/80 rounded text-[11px] font-medium"
-            >
-              50%
-            </button>
-            <button
-              type="button"
-              onClick={() => updateImageSize("75%", "auto")}
-              className="px-2 py-1 bg-muted hover:bg-muted/80 rounded text-[11px] font-medium"
-            >
-              75%
-            </button>
-            <button
-              type="button"
-              onClick={() => updateImageSize("100%", "auto")}
-              className="px-2 py-1 bg-muted hover:bg-muted/80 rounded text-[11px] font-medium"
-            >
-              100%
-            </button>
-            <button
-              type="button"
-              onClick={() => updateImageSize("auto", "auto")}
-              className="px-2 py-1 bg-muted hover:bg-muted/80 rounded text-[11px] font-medium"
-            >
-              Original
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setSelectedImg(null)}
-            className="ml-auto p-1 text-muted-foreground hover:text-foreground rounded"
-            title="Close resizer"
+        {selectedImg && overlayStyle && (
+          <div
+            data-canva-overlay-preview
+            className="absolute pointer-events-none border-2 border-primary rounded-sm"
+            style={{
+              left: overlayStyle.left,
+              top: overlayStyle.top,
+              width: overlayStyle.width,
+              height: overlayStyle.height,
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.8)",
+            }}
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      <div
-        ref={containerRef}
-        className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed [&_img]:cursor-pointer [&_img]:transition-all [&_img]:rounded-lg [&_img]:border-2 [&_img]:border-transparent hover:[&_img]:border-emerald-500/50"
-        dangerouslySetInnerHTML={{ __html: sanitized }}
-      />
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-mono font-bold px-2 py-0.5 rounded whitespace-nowrap pointer-events-none">
+              {Math.round(overlayStyle.width)} × {Math.round(overlayStyle.height)}
+            </div>
+            {(["nw", "ne", "sw", "se"] as ResizeHandle[]).map((h) => (
+              <div
+                key={h}
+                onMouseDown={(e) => handleResizeStart(e, h)}
+                className="absolute w-3 h-3 bg-white border-2 border-primary rounded-sm shadow-md pointer-events-auto"
+                style={{
+                  cursor: h === "nw" || h === "se" ? "nwse-resize" : "nesw-resize",
+                  top: h.includes("n") ? -6 : "auto",
+                  bottom: h.includes("s") ? -6 : "auto",
+                  left: h.includes("w") ? -6 : "auto",
+                  right: h.includes("e") ? -6 : "auto",
+                }}
+              />
+            ))}
+            {(["n", "s", "e", "w"] as ResizeHandle[]).map((h) => (
+              <div
+                key={h}
+                onMouseDown={(e) => handleResizeStart(e, h)}
+                className="absolute bg-white border border-primary shadow-md pointer-events-auto"
+                style={{
+                  cursor: h === "n" || h === "s" ? "ns-resize" : "ew-resize",
+                  width: h === "n" || h === "s" ? 20 : 8,
+                  height: h === "n" || h === "s" ? 8 : 20,
+                  borderRadius: 999,
+                  top: h === "n" ? -4 : h === "s" ? "auto" : "50%",
+                  bottom: h === "s" ? -4 : "auto",
+                  left: h === "w" ? -4 : h === "e" ? "auto" : "50%",
+                  right: h === "e" ? -4 : "auto",
+                  transform: h === "n" || h === "s" ? "translateX(-50%)" : h === "w" || h === "e" ? "translateY(-50%)" : undefined,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">Tip: Click any image, drag the white handles (Canva-style) to resize. Size is saved — students see the exact dimensions.</p>
     </div>
   );
 }

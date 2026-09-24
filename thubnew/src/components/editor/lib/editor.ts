@@ -59,7 +59,7 @@ export function sanitizeHtml(html: string): string {
       "ul", "ol", "li", "blockquote", "hr", "img", "span", "div", "table", "thead", "tbody",
       "tr", "th", "td", "task-list", "task-item"
     ],
-    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class", "style", "data-checked"],
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class", "style", "data-checked", "width", "height", "data-image-index"],
   });
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
 import { uploadService, uploadStatusLabel, type UploadStatus } from "@/services/upload.service";
 import { richTextHtmlToMarkdown } from "@/lib/rich-text-paste";
@@ -47,6 +47,8 @@ interface GithubMarkdownEditorProps {
   placeholder?: string;
 }
 
+type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
 export function GithubMarkdownEditor({ initialContent = "", onChange, placeholder }: GithubMarkdownEditorProps) {
   const content = initialContent;
   const [tab, setTab] = useState<"write" | "preview">("write");
@@ -55,11 +57,173 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editablePreviewRef = useRef<HTMLDivElement>(null);
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
   const previewDirtyRef = useRef(false);
   const previewSelectionRef = useRef<Range | null>(null);
 
+  // Canva-style image resize state
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+  const [overlayStyle, setOverlayStyle] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const resizingRef = useRef<{ handle: ResizeHandle; startX: number; startY: number; startW: number; startH: number } | null>(null);
+  const isResizingRef = useRef(false);
+
   const updateContent = (newText: string) => {
     onChange(newText);
+  };
+
+  const syncContentFromPreview = useCallback(() => {
+    const el = editablePreviewRef.current;
+    if (!el) return;
+    const clone = el.cloneNode(true) as HTMLElement;
+    // richTextHtmlToMarkdown will convert resized <img style width/height> to persisted HTML img tag
+    const markdown = richTextHtmlToMarkdown(clone.innerHTML);
+    updateContent(markdown);
+  }, [updateContent]);
+
+  const updateOverlayPosition = useCallback(() => {
+    if (!selectedImg || !previewWrapperRef.current) return;
+    const container = previewWrapperRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const imgRect = selectedImg.getBoundingClientRect();
+    setOverlayStyle({
+      left: imgRect.left - containerRect.left + container.scrollLeft,
+      top: imgRect.top - containerRect.top + container.scrollTop,
+      width: imgRect.width,
+      height: imgRect.height,
+    });
+  }, [selectedImg]);
+
+  // Keep overlay in sync on scroll/resize
+  useEffect(() => {
+    if (!selectedImg) {
+      setOverlayStyle(null);
+      return;
+    }
+    updateOverlayPosition();
+    const onScrollOrResize = () => updateOverlayPosition();
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    return () => {
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+    };
+  }, [selectedImg, updateOverlayPosition, content]);
+
+  // Clear selection when switching tabs or content changes externally
+  useEffect(() => {
+    if (tab !== "preview") {
+      setSelectedImg(null);
+      setOverlayStyle(null);
+    }
+  }, [tab]);
+
+  // Click handling for image selection in preview
+  useEffect(() => {
+    if (tab !== "preview") return;
+    const el = editablePreviewRef.current;
+    if (!el) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG") {
+        e.preventDefault();
+        e.stopPropagation();
+        const img = target as HTMLImageElement;
+        // Make sure image is not inside a control
+        setSelectedImg(img);
+        // prevent contentEditable cursor jump
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        setTimeout(() => updateOverlayPosition(), 0);
+      } else {
+        // click outside image but inside preview - check if click is on overlay handle
+        const overlay = document.querySelector("[data-canva-overlay]");
+        if (overlay && overlay.contains(target)) return;
+        setSelectedImg(null);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const wrapper = previewWrapperRef.current;
+      if (!wrapper) return;
+      const target = e.target as Node;
+      if (!wrapper.contains(target) && !(target as HTMLElement).closest?.("[data-canva-overlay]")) {
+        setSelectedImg(null);
+      }
+    };
+
+    el.addEventListener("click", handleClick);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      el.removeEventListener("click", handleClick);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [tab, updateOverlayPosition]);
+
+  const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
+    if (!selectedImg) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
+    const rect = selectedImg.getBoundingClientRect();
+    resizingRef.current = {
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: rect.width,
+      startH: rect.height,
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      if (!resizingRef.current || !selectedImg) return;
+      const { handle: h, startX, startY, startW, startH } = resizingRef.current;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      let newW = startW;
+      let newH = startH;
+
+      if (h.includes("e")) newW = startW + dx;
+      if (h.includes("w")) newW = startW - dx;
+      if (h.includes("s")) newH = startH + dy;
+      if (h.includes("n")) newH = startH - dy;
+
+      newW = Math.max(40, Math.round(newW));
+      newH = Math.max(40, Math.round(newH));
+
+      // Apply directly to DOM for live Canva-like feedback
+      selectedImg.style.width = `${newW}px`;
+      selectedImg.style.height = `${newH}px`;
+      selectedImg.style.maxWidth = "none";
+      selectedImg.setAttribute("width", String(newW));
+      selectedImg.setAttribute("height", String(newH));
+      selectedImg.style.objectFit = "contain";
+
+      // Update overlay
+      if (previewWrapperRef.current) {
+        const containerRect = previewWrapperRef.current.getBoundingClientRect();
+        const imgRect = selectedImg.getBoundingClientRect();
+        setOverlayStyle({
+          left: imgRect.left - containerRect.left + previewWrapperRef.current.scrollLeft,
+          top: imgRect.top - containerRect.top + previewWrapperRef.current.scrollTop,
+          width: imgRect.width,
+          height: imgRect.height,
+        });
+      }
+      previewDirtyRef.current = true;
+    };
+
+    const onUp = () => {
+      isResizingRef.current = false;
+      resizingRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      // Persist to markdown/DB so student sees exact size
+      syncContentFromPreview();
+      setTimeout(() => updateOverlayPosition(), 0);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   const insertAtCursor = (textToInsert: string) => {
@@ -183,6 +347,10 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   const handleCode = () => insertAtCursor("```typescript\nconsole.log('Hello GitHub Editor');\n```");
 
   const handlePreviewBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (isResizingRef.current) return;
+    // don't sync if click was on overlay
+    const related = event.relatedTarget as HTMLElement | null;
+    if (related?.closest?.("[data-canva-overlay]")) return;
     if (!previewDirtyRef.current) return;
     previewDirtyRef.current = false;
     const editable = event.currentTarget;
@@ -193,11 +361,15 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
   };
 
   const capturePreviewSelection = () => {
+    if (isResizingRef.current) return;
     const preview = editablePreviewRef.current;
     const selection = window.getSelection();
     if (!preview || !selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
+    // Avoid capturing when image is selected
+    const anchor = range.commonAncestorContainer as HTMLElement;
+    if (anchor instanceof Element && anchor.tagName === "IMG") return;
     if (preview.contains(range.commonAncestorContainer)) {
       previewSelectionRef.current = range.cloneRange();
     }
@@ -377,7 +549,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
         <div className="p-6 min-h-[320px] bg-card">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             <span>Live Preview</span>
-            <span className="font-medium normal-case tracking-normal text-primary">Click the content to edit · changes sync automatically</span>
+            <span className="font-medium normal-case tracking-normal text-primary">Click image to select · drag handles to resize · changes saved to DB</span>
           </div>
           <div
             data-preview-control
@@ -404,26 +576,86 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
               </button>
             ))}
           </div>
-          <div
-            ref={editablePreviewRef}
-            contentEditable
-            suppressContentEditableWarning
-            role="textbox"
-            aria-label="Editable lesson preview"
-            aria-multiline="true"
-            spellCheck
-            onInput={() => {
-              previewDirtyRef.current = true;
-              capturePreviewSelection();
-            }}
-            onMouseUp={capturePreviewSelection}
-            onKeyUp={capturePreviewSelection}
-            onFocus={capturePreviewSelection}
-            onBlur={handlePreviewBlur}
-            className="min-h-[240px] rounded-lg border border-transparent p-2 outline-none transition-colors hover:border-border focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15"
-          >
-            <MarkdownRenderer content={content} />
+          <div ref={previewWrapperRef} className="relative">
+            <div
+              ref={editablePreviewRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-label="Editable lesson preview"
+              aria-multiline="true"
+              spellCheck
+              onInput={() => {
+                previewDirtyRef.current = true;
+                capturePreviewSelection();
+                if (selectedImg) setTimeout(() => updateOverlayPosition(), 0);
+              }}
+              onMouseUp={capturePreviewSelection}
+              onKeyUp={capturePreviewSelection}
+              onFocus={capturePreviewSelection}
+              onBlur={handlePreviewBlur}
+              className="min-h-[240px] rounded-lg border border-transparent p-2 outline-none transition-colors hover:border-border focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/15 [&_img]:cursor-pointer [&_img]:max-w-full [&_img]:select-none"
+            >
+              <MarkdownRenderer content={content} />
+            </div>
+
+            {/* Canva-style overlay */}
+            {selectedImg && overlayStyle && (
+              <div
+                data-canva-overlay
+                className="absolute pointer-events-none border-2 border-primary rounded-sm"
+                style={{
+                  left: overlayStyle.left,
+                  top: overlayStyle.top,
+                  width: overlayStyle.width,
+                  height: overlayStyle.height,
+                  boxShadow: "0 0 0 1px rgba(255,255,255,0.8)",
+                }}
+              >
+                {/* Size label */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-mono font-bold px-2 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                  {Math.round(overlayStyle.width)} × {Math.round(overlayStyle.height)}
+                </div>
+
+                {/* Corner handles */}
+                {(["nw", "ne", "sw", "se"] as ResizeHandle[]).map((h) => (
+                  <div
+                    key={h}
+                    onMouseDown={(e) => handleResizeStart(e, h)}
+                    className="absolute w-3 h-3 bg-white border-2 border-primary rounded-sm shadow-md pointer-events-auto"
+                    style={{
+                      cursor: h === "nw" || h === "se" ? "nwse-resize" : "nesw-resize",
+                      top: h.includes("n") ? -6 : "auto",
+                      bottom: h.includes("s") ? -6 : "auto",
+                      left: h.includes("w") ? -6 : "auto",
+                      right: h.includes("e") ? -6 : "auto",
+                    }}
+                  />
+                ))}
+
+                {/* Edge handles */}
+                {(["n", "s", "e", "w"] as ResizeHandle[]).map((h) => (
+                  <div
+                    key={h}
+                    onMouseDown={(e) => handleResizeStart(e, h)}
+                    className="absolute bg-white border border-primary shadow-md pointer-events-auto"
+                    style={{
+                      cursor: h === "n" || h === "s" ? "ns-resize" : "ew-resize",
+                      width: h === "n" || h === "s" ? 20 : 8,
+                      height: h === "n" || h === "s" ? 8 : 20,
+                      borderRadius: 999,
+                      top: h === "n" ? -4 : h === "s" ? "auto" : "50%",
+                      bottom: h === "s" ? -4 : "auto",
+                      left: h === "w" ? -4 : h === "e" ? "auto" : "50%",
+                      right: h === "e" ? -4 : "auto",
+                      transform: h === "n" || h === "s" ? "translateX(-50%)" : h === "w" || h === "e" ? "translateY(-50%)" : undefined,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">Tip: Click any image in preview, then drag the white handles (Canva-style) to resize. Size is saved automatically — students see the exact dimensions.</p>
         </div>
       )}
     </div>
