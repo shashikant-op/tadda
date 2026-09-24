@@ -1,10 +1,7 @@
 import React, { useState, useRef } from "react";
 import { MarkdownRenderer } from "@/components/tutorial/MarkdownRenderer";
 import { uploadService, uploadStatusLabel, type UploadStatus } from "@/services/upload.service";
-import TurndownService from "turndown";
-// @ts-expect-error no types available
-import * as gfm from "turndown-plugin-gfm";
-import DOMPurify from "dompurify";
+import { richTextHtmlToMarkdown } from "@/lib/rich-text-paste";
 import {
   Bold,
   Italic,
@@ -44,26 +41,6 @@ const PREVIEW_TOOLS = [
   { label: "Clear formatting", icon: RemoveFormatting, command: "removeFormat" },
 ] as const;
 
-const turndownService = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-  bulletListMarker: "-",
-});
-turndownService.use(gfm.gfm);
-turndownService.addRule("underline", {
-  filter: ["u"],
-  replacement: (content) => `<u>${content}</u>`,
-});
-turndownService.addRule("previewFencedCode", {
-  filter: (node) => node instanceof HTMLElement && node.hasAttribute("data-code-language"),
-  replacement: (_content, node) => {
-    const element = node as HTMLElement;
-    const language = element.dataset.codeLanguage || "text";
-    const code = element.querySelector("pre code")?.textContent || "";
-    return `\n\n\`\`\`${language}\n${code.replace(/\n$/, "")}\n\`\`\`\n\n`;
-  },
-});
-
 interface GithubMarkdownEditorProps {
   initialContent?: string;
   onChange: (content: string) => void;
@@ -101,24 +78,37 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
     }, 0);
   };
 
+  const insertAtRange = (textToInsert: string, start: number, end = start) => {
+    const newContent = content.substring(0, start) + textToInsert + content.substring(end);
+    updateContent(newContent);
+    setTimeout(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const nextPosition = start + textToInsert.length;
+      textarea.focus();
+      textarea.setSelectionRange(nextPosition, nextPosition);
+    }, 0);
+  };
+
   const handleFileUpload = async (file: File) => {
     if (uploading) return;
     if (!file.type.startsWith("image/")) {
       setError("Please drop/select a valid image file.");
       return;
     }
+    const insertionStart = textareaRef.current?.selectionStart ?? content.length;
+    const insertionEnd = textareaRef.current?.selectionEnd ?? insertionStart;
     try {
       setUploading(true);
       setError(null);
       const res = await uploadService.uploadImage(file, setUploadStatus);
       const url = res.url;
       const altText = file.name.replace(/\.[^.]+$/, "").replace(/[\[\]]/g, "").trim() || "lesson image";
-      const cursorPosition = textareaRef.current?.selectionStart ?? content.length;
-      const beforeCursor = content.slice(0, cursorPosition);
-      const afterCursor = content.slice(cursorPosition);
+      const beforeCursor = content.slice(0, insertionStart);
+      const afterCursor = content.slice(insertionEnd);
       const leadingNewline = beforeCursor.length > 0 && !beforeCursor.endsWith("\n") ? "\n" : "";
       const trailingNewline = afterCursor.length > 0 && !afterCursor.startsWith("\n") ? "\n" : "";
-      insertAtCursor(`${leadingNewline}![${altText}](${url})${trailingNewline}`);
+      insertAtRange(`${leadingNewline}![${altText}](${url})${trailingNewline}`, insertionStart, insertionEnd);
     } catch (err: unknown) {
       const uploadError = err as { response?: { data?: { message?: string } }; message?: string };
       setError(uploadError.response?.data?.message || uploadError.message || "Image upload failed. No image was inserted.");
@@ -150,13 +140,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
     if (htmlData) {
       e.preventDefault();
       try {
-        const sanitized = DOMPurify.sanitize(htmlData);
-        let markdown = turndownService.turndown(sanitized);
-        markdown = markdown
-          .replace(/\u00A0/g, " ")
-          .replace(/\r\n/g, "\n")
-          .replace(/\n{3,}/g, "\n\n")
-          .trim();
+        const markdown = richTextHtmlToMarkdown(htmlData);
         insertAtCursor(markdown);
       } catch (err) {
         console.error("Failed to parse pasted rich text", err);
@@ -204,13 +188,7 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
     const editable = event.currentTarget;
     const clone = editable.cloneNode(true) as HTMLElement;
     clone.querySelectorAll("[data-preview-control]").forEach((control) => control.remove());
-    const sanitizedHtml = DOMPurify.sanitize(clone.innerHTML);
-
-    const markdown = turndownService.turndown(sanitizedHtml)
-      .replace(/\u00A0/g, " ")
-      .replace(/\r\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
+    const markdown = richTextHtmlToMarkdown(clone.innerHTML);
     updateContent(markdown);
   };
 
@@ -332,9 +310,12 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleFileUpload(e.target.files[0]);
+                  const input = e.currentTarget;
+                  const file = input.files?.[0];
+                  if (file) {
+                    void handleFileUpload(file);
                   }
+                  input.value = "";
                 }}
               />
             </label>
@@ -381,10 +362,11 @@ export function GithubMarkdownEditor({ initialContent = "", onChange, placeholde
             ref={textareaRef}
             rows={12}
             value={content}
+            disabled={uploading}
             onChange={(e) => updateContent(e.target.value)}
             onPaste={handlePaste}
             placeholder={placeholder || "Type markdown here... Paste rich text from Google Docs, Word, Notion, ChatGPT, etc. — auto-converted to Markdown!"}
-            className="w-full bg-background p-4 text-sm font-mono leading-relaxed resize-y focus:outline-none"
+            className="w-full bg-background p-4 text-sm font-mono leading-relaxed resize-y focus:outline-none disabled:cursor-wait disabled:opacity-70"
           />
           <div className="px-4 py-2 bg-muted/20 border-t flex items-center justify-between text-[11px] text-muted-foreground">
             <span>Rich text paste supported (Auto HTML → GFM Markdown) • Drag & drop images to Cloudinary</span>

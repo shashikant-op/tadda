@@ -12,6 +12,11 @@ export const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
+    // The shared client defaults to JSON. Multipart uploads must let Axios/the
+    // browser generate Content-Type with its boundary or multer receives no file.
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      config.headers.delete("Content-Type");
+    }
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
       if (token) {

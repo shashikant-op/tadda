@@ -11,16 +11,18 @@ export const uploadService = {
     formData.append("image", image);
     onProgress?.({ stage: "uploading", percent: 0 });
     const res = await axiosInstance.post("/tutorials/upload/image", formData, {
-      // Do not set Content-Type manually: the browser must add the multipart
-      // boundary or multer will receive an unreadable request body.
-      headers: { "Content-Type": undefined },
       timeout: 45000,
       onUploadProgress: ({ loaded, total }) => {
         const percent = total ? Math.min(100, Math.round(loaded * 100 / total)) : 0;
         onProgress?.({ stage: percent === 100 ? "processing" : "uploading", percent });
       },
     });
-    return res.data.data;
+    const payload = res.data?.data;
+    if (!payload || typeof payload.url !== "string" || !/^https?:\/\//i.test(payload.url)) {
+      throw new Error("Image storage returned an invalid image URL. Please try again.");
+    }
+    onProgress?.({ stage: "processing", percent: 100 });
+    return { url: payload.url };
   },
 };
 
