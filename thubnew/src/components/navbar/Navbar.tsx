@@ -139,7 +139,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed left-1/2 top-3 z-50 w-[min(calc(100%-1.5rem),80rem)] -translate-x-1/2 rounded-full border border-[var(--border)]/30 bg-white/80 shadow-md backdrop-blur-xl">
+    <header className="fixed mb-10 left-1/2 top-3 z-50 w-[min(calc(100%-1.5rem),80rem)] -translate-x-1/2 rounded-full border border-[var(--border)]/30 bg-white/80 shadow-md backdrop-blur-xl">
       <div className="flex h-16 items-center justify-between px-4 transition-all duration-300 lg:px-8">
         {/* ================= MOBILE SECTION ================= */}
         {/* This section renders only on mobile screens (md:hidden) with logo, category link, and login section without dropdowns */}

@@ -40,9 +40,10 @@ export default function HomePage() {
 
   return <div className="min-h-screen overflow-hidden">
     <a href="#main-content" className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-lg bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-[var(--canvas)] transition-transform focus:translate-y-0">Skip to content</a>
-    <Navbar />
-    <main id="main-content" className="">
-      <section className="hero-shell pt-20">
+
+    <Navbar / >
+    <main id="main-content" >
+     <section className="hero-shell left-1/2 top-0 z-50 ">
         <div className="hero-copy">
           <p className="reference-kicker"><Sparkles className="h-4 w-4" /> AI-powered mastery</p>
           <h1>Learn anything.<br /><span>Master everything.</span></h1>
