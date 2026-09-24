@@ -119,6 +119,7 @@ body {
   background: var(--background);
   color: var(--foreground); font-family: var(--font-inter), var(--font-geist-sans), sans-serif;
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  padding-top: 4.75rem;
 }
 body::before {
   position: fixed; inset: 0; z-index: -1; pointer-events: none; content: ""; opacity: .28;
