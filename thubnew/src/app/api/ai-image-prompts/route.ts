@@ -37,16 +37,33 @@ const ResponseSchema = z.object({
 });
 
 async function readLocalGeminiKey(): Promise<string> {
-  if (process.env.GEMINI_API_KEY?.trim()) return process.env.GEMINI_API_KEY.trim();
+  // Check all common env names first (works in both dev and production on Vercel)
+  const direct =
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim() ||
+    process.env.AI_API_KEY?.trim() ||
+    "";
+  if (direct) return direct;
+
+  // In production there is no local file - return empty so caller shows 503
   if (process.env.NODE_ENV === "production") return "";
 
-  try {
-    const envText = await readFile(path.resolve(process.cwd(), "../aipipeline/.env"), "utf8");
-    const match = envText.match(/^GEMINI_API_KEY\s*=\s*["']?([^\r\n"']+)["']?\s*$/m);
-    return match?.[1]?.trim() || "";
-  } catch {
-    return "";
+  // Local dev fallback: try aipipeline/.env and thubnew/.env.local
+  const candidates = [
+    path.resolve(process.cwd(), "../aipipeline/.env"),
+    path.resolve(process.cwd(), ".env.local"),
+    path.resolve(process.cwd(), ".env"),
+  ];
+  for (const filePath of candidates) {
+    try {
+      const envText = await readFile(filePath, "utf8");
+      const match = envText.match(/^GEMINI_API_KEY\s*=\s*["']?([^\r\n"']+)["']?\s*$/m);
+      if (match?.[1]?.trim()) return match[1].trim();
+    } catch {
+      // ignore
+    }
   }
+  return "";
 }
 
 function extractGeminiText(payload: unknown): string {
@@ -84,25 +101,56 @@ export async function POST(request: Request) {
     }
 
     const model = process.env.GEMINI_MODEL || process.env.AI_MODEL || "gemini-3.6-flash";
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: buildEducationalVisualPrompt(parsedRequest.data) }] }],
-          generationConfig: { temperature: 0.15, responseMimeType: "application/json" },
-        }),
-        signal: AbortSignal.timeout(60_000),
-      },
-    );
 
-    if (!geminiResponse.ok) {
-      console.error("Gemini image-prompt request failed with status", geminiResponse.status);
+    let geminiResponse: Response | null = null;
+    let lastErrorBody = "";
+    // Retry once on transient 429/500/503
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: buildEducationalVisualPrompt(parsedRequest.data) }] }],
+              generationConfig: { temperature: 0.15, responseMimeType: "application/json" },
+            }),
+            signal: AbortSignal.timeout(60_000),
+          },
+        );
+        if (geminiResponse.ok) break;
+        lastErrorBody = await geminiResponse.text().catch(() => "");
+        console.error(`Gemini image-prompt request failed (attempt ${attempt + 1}) status ${geminiResponse.status} body:`, lastErrorBody.slice(0, 2000));
+        // Retry only on rate-limit / server errors
+        if (![429, 500, 502, 503].includes(geminiResponse.status)) break;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+      } catch (e) {
+        lastErrorBody = e instanceof Error ? e.message : String(e);
+        console.error(`Gemini image-prompt fetch error (attempt ${attempt + 1}):`, lastErrorBody);
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+
+    if (!geminiResponse || !geminiResponse.ok) {
+      const status = geminiResponse?.status || 502;
+      // Surface leaked-key case clearly
+      if (lastErrorBody.includes("leaked") || lastErrorBody.includes("PERMISSION_DENIED")) {
+        console.error("Gemini API key rejected:", lastErrorBody.slice(0, 500));
+        return NextResponse.json({ success: false, message: "Gemini API key is invalid or revoked. Please update GEMINI_API_KEY." }, { status: 502 });
+      }
       return NextResponse.json({ success: false, message: "Gemini could not analyze this lesson. Please try again." }, { status: 502 });
     }
 
-    const rawText = extractGeminiText(await geminiResponse.json()).trim().replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+    const geminiPayload = await geminiResponse.json().catch(async () => {
+      const t = await geminiResponse!.text().catch(() => "");
+      return { _raw: t };
+    });
+    const rawText = extractGeminiText(geminiPayload).trim().replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+    if (!rawText) {
+      console.error("Gemini returned empty candidates payload:", JSON.stringify(geminiPayload).slice(0, 2000));
+      return NextResponse.json({ success: false, message: "Gemini returned an empty response. Please try again." }, { status: 502 });
+    }
     let geminiJson: unknown;
     try {
       geminiJson = JSON.parse(rawText);
