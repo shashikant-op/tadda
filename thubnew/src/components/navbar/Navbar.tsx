@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { Search, User as UserIcon, LogOut, Shield, ChevronDown, ChevronRight, FileText, Cpu, Layers, PlusCircle } from "lucide-react";
@@ -140,14 +139,14 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-3 z-50 mx-auto w-[min(calc(100%-1rem),80rem)] rounded-[1.45rem] border border-white/50 bg-[#a9cbbd]/90 shadow-[0_14px_34px_-24px_rgba(8,56,40,.5)] backdrop-blur-xl lg:top-5">
-      <div className="flex h-16 items-center justify-between px-4 lg:px-7">
+    <header className="fixed left-1/2 top-3 z-50 w-[min(calc(100%-1.5rem),80rem)] -translate-x-1/2 rounded-full border border-[var(--border)]/30 bg-white/80 shadow-md backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-4 transition-all duration-300 lg:px-8">
         {/* ================= MOBILE SECTION ================= */}
         {/* This section renders only on mobile screens (md:hidden) with logo, category link, and login section without dropdowns */}
         <div className="flex lg:hidden items-center justify-between w-full">
-          <Link href="/" className="flex items-center space-x-2 shrink-0">
-            <Image src="/logopng.png" alt="TutorialsAdda Logo" width={32} height={32} className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-xs tracking-[-.02em] text-[#071a33]">TutorialsHub</span>
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded bg-[var(--primary)]" aria-hidden="true"><span className="absolute left-[5px] h-5 w-4 rounded-l-sm border-2 border-r-0 border-white" /><span className="absolute right-[4px] top-[4px] text-[14px] text-white">✦</span></span>
+            <span className="font-semibold tracking-[-.02em] text-[var(--ink)]">TutorialsHub</span>
           </Link>
 
           <div className="flex items-center space-x-2.5 shrink-0">
@@ -165,7 +164,7 @@ export function Navbar() {
               </Link>
             ) : (
               <Link
-                className={cn(buttonVariants({ size: "sm" }), "h-7 px-2.5 bg-[var(--ink)] text-[var(--primary-foreground)] hover:bg-[var(--ink)] text-[11px] font-medium")}
+                className={cn(buttonVariants({ size: "sm" }), "h-8 rounded-full bg-[var(--primary)] px-3 text-[11px] font-semibold text-white hover:bg-[#005c3e]")}
                 href="/auth/login"
               >
                 Login
@@ -178,9 +177,9 @@ export function Navbar() {
         {/* ================= DESKTOP SECTION ================= */}
         {/* Desktop Logo */}
         <div className="hidden lg:flex items-center">
-          <Link href="/" className="flex items-center space-x-2.5">
-            <Image src="/logopng.png" alt="TutorialsAdda Logo" width={36} height={36} className="h-9 w-9 rounded-[10px] object-cover" />
-            <span className="font-semibold text-lg tracking-[-.035em] text-[#071a33]">TutorialsHub</span>
+          <Link href="/" className="flex items-center gap-2">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded bg-[var(--primary)]" aria-hidden="true"><span className="absolute left-[5px] h-5 w-4 rounded-l-sm border-2 border-r-0 border-white" /><span className="absolute right-[4px] top-[4px] text-[14px] text-white">✦</span></span>
+            <span className="text-xl font-bold tracking-tight text-[var(--ink)]">TutorialsHub</span>
           </Link>
         </div>
 
@@ -191,7 +190,7 @@ export function Navbar() {
             onMouseEnter={() => setCategoriesOpen(true)}
             onMouseLeave={() => setCategoriesOpen(false)}
           >
-            <button className="flex items-center space-x-1.5 py-2 transition-colors hover:text-[var(--ink)] text-[var(--body)] font-medium">
+            <button className="flex items-center space-x-1.5 py-2 text-sm font-medium text-[var(--body)] transition-colors hover:text-[var(--primary)]">
               <Layers className="h-4 w-4 text-[var(--body)]" />
               <span>Categories</span>
               <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${categoriesOpen ? "rotate-180" : ""}`} />
@@ -273,8 +272,8 @@ export function Navbar() {
             )}
           </div>
 
-          <Link href="/search" className="transition-colors hover:text-[var(--ink)] text-[var(--body)]">Pathways</Link>
-          <Link href="/search" className="transition-colors hover:text-[var(--ink)] text-[var(--body)]">Courses</Link>
+          <Link href="/search" className="text-[var(--body)] transition-colors hover:text-[var(--primary)]">Pathways</Link>
+          <Link href="/search" className="text-[var(--body)] transition-colors hover:text-[var(--primary)]">Courses</Link>
         </nav>
 
         {/* Global Search Bar & Auth Actions */}
@@ -286,7 +285,7 @@ export function Navbar() {
               <Input
                 aria-label="Search documentation"
                 placeholder="What do you want to learn?"
-                className="h-10 w-full rounded-full border-white/70 bg-[#f4f7ff] pl-9 text-xs focus-visible:border-[var(--primary)] focus-visible:ring-0"
+                className="h-10 w-full rounded-full border-0 bg-[var(--surface-container-low)] pl-9 text-xs focus-visible:ring-2 focus-visible:ring-[var(--primary)]/20"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -360,7 +359,7 @@ export function Navbar() {
           ) : (
             <div className="flex items-center space-x-2">
               <Link href="/auth/login">
-                <Button size="sm" className="h-10 rounded-full bg-[#007a57] px-5 text-xs font-medium text-white hover:bg-[#00694b]">Sign In</Button>
+                <Button size="sm" className="h-10 rounded-full bg-[var(--primary)] px-6 text-xs font-semibold text-white hover:bg-[#005c3e] hover:scale-[1.03]">Sign In</Button>
               </Link>
             </div>
           )}

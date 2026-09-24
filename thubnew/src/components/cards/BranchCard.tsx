@@ -15,14 +15,14 @@ export function BranchCard({ name, slug, description, subjectCount, icon, image 
   const backgroundImage = image?.trim();
 
   return (
-    <Link href={`/${branchSlug}`} className={`interactive-lift group relative isolate flex min-h-56 flex-col justify-between overflow-hidden rounded-[1.4rem] p-6 focus-visible:outline-[var(--primary)] ${backgroundImage ? "bg-[#172019] text-white" : "bg-[var(--soft)]"}`}>
+    <Link href={`/${branchSlug}`} className={`interactive-lift group relative isolate flex min-h-56 flex-col justify-between overflow-hidden rounded-[1.4rem] border border-[var(--border)]/40 p-6 focus-visible:outline-[var(--primary)] ${backgroundImage ? "bg-[#0b1c30] text-white" : "bg-white"}`}>
       {backgroundImage && <>
         <span
           aria-hidden="true"
           className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           style={{ backgroundImage: `url(${JSON.stringify(backgroundImage)})` }}
         />
-        <span aria-hidden="true" className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/48 to-black/20" />
+        <span aria-hidden="true" className="absolute inset-0 z-10 bg-gradient-to-t from-[#0b1c30]/95 via-[#0b1c30]/55 to-[#0b1c30]/20" />
       </>}
       <div className="relative z-20 flex items-start justify-between">
         <span className={`font-mono text-xs ${backgroundImage ? "text-white/75" : "text-[var(--body)]"}`}>{icon || "01"}</span>

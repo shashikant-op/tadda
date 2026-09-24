@@ -24,14 +24,14 @@ export function TutorialCard({ tutorial }: TutorialCardProps) {
       aria-label={`Read ${tutorial.title}`}
       className="group block h-full rounded-[1.4rem] focus-visible:outline-[var(--primary)]"
     >
-      <article className="editorial-shadow relative isolate flex h-full min-h-[17.5rem] flex-col overflow-hidden rounded-[1.2rem] bg-[var(--soft)] p-5 transition-[transform,background-color,box-shadow] duration-300 ease-out group-hover:-translate-y-1 group-hover:bg-[var(--border)] group-hover:shadow-[0_28px_64px_-38px_rgba(36,77,56,.62)] group-active:translate-y-0 group-active:scale-[.99] sm:min-h-80 sm:rounded-[1.4rem] sm:p-7">
+      <article className="relative isolate flex h-full min-h-[17.5rem] flex-col overflow-hidden rounded-[1.2rem] border border-[var(--border)]/40 bg-white p-5 transition-[transform,border-color,box-shadow] duration-300 ease-out group-hover:-translate-y-2 group-hover:border-[var(--primary)]/40 group-hover:shadow-[0_24px_48px_-24px_rgba(0,108,73,.28)] group-active:translate-y-0 group-active:scale-[.99] sm:min-h-80 sm:rounded-[1.4rem] sm:p-7">
         <div className="pointer-events-none absolute -right-4 -top-6 -z-10 font-mono text-[6rem] font-semibold leading-none text-[var(--primary)]/[.055] transition-transform duration-500 group-hover:-translate-x-1 group-hover:translate-y-1 sm:-right-7 sm:-top-10 sm:text-[9rem]" aria-hidden="true">
           {subjectMark}
         </div>
 
         <header className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--primary)] font-mono text-[11px] font-semibold text-[var(--canvas)] sm:h-9 sm:w-9 sm:rounded-[9px] sm:text-xs">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--primary)] font-mono text-[11px] font-semibold text-white sm:h-9 sm:w-9 sm:rounded-[9px] sm:text-xs">
               {subjectMark}
             </span>
             <div className="min-w-0">

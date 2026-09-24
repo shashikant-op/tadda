@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Geist, Geist_Mono, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500", "600"] });
+const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tutorialsadda.com"),
@@ -38,9 +44,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <Script id="theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('tutorialsadda-theme');if(!['quiet','fresh','night'].includes(t)){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'night':'quiet'}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t==='night'?'dark':'light'}catch(e){document.documentElement.dataset.theme='quiet'}})();`}</Script>
+        <Script id="theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('tutorialsadda-theme');if(!['quiet','fresh','night'].includes(t)){t='fresh'}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t==='night'?'dark':'light'}catch(e){document.documentElement.dataset.theme='fresh'}})();`}</Script>
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}

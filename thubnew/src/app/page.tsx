@@ -56,7 +56,7 @@ export default function HomePage() {
         <div className="hero-visual" aria-label="Interactive learning workspace illustration">
           <div className="quick-card"><span><Zap className="h-5 w-5" /></span><div><strong>Quick start</strong><small>Continue your learning path</small></div></div>
           <div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" />
-          <Image src="/hero-code-learning.png" alt="Laptop showing an interactive code lesson" width={1672} height={941} priority sizes="(max-width: 900px) 100vw, 50vw" />
+          <Image src="/illustrations/hero.png" alt="Developer learning with an interactive coding workspace" width={1536} height={1024} priority sizes="(max-width: 900px) 100vw, 50vw" />
           <div className="floating-chip chip-ai"><Sparkles className="h-4 w-4" /> AI explanations</div>
           <div className="floating-chip chip-code"><Code2 className="h-5 w-5" /></div>
         </div>
